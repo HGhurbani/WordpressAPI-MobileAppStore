@@ -146,7 +146,7 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
 
   Future<bool> updateFcmToken(String email, String token) async {
     final url = "$baseUrl/wp-json/custom/v1/update-fcm-token";
-    
+
     try {
       final response = await http.post(
         Uri.parse(url),
@@ -158,13 +158,14 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
           "consumer_secret": cs,
         }),
       );
-      
+
       return response.statusCode == 200;
     } catch (e) {
       print('Error updating FCM token: $e');
       return false;
     }
   }
+
 
 
 }

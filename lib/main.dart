@@ -41,7 +41,7 @@ void main() async {
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await Firebase.initializeApp();
-
+  await NotificationService().initialize();
   final notificationService = NotificationService();
   await notificationService.initialize();
 

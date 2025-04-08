@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,12 +26,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _loadNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final notificationsList = prefs.getStringList('notifications') ?? [];
+
     setState(() {
       notifications = notificationsList
-          .map((item) => Map<String, dynamic>.from(Map.from(item as Map)))
+          .map((item) => jsonDecode(item) as Map<String, dynamic>)
           .toList();
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +59,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 );
               },
             ),
+
     );
   }
 }
