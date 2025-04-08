@@ -18,6 +18,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool notificationsEnabled = true;
   final NotificationService _notificationService = NotificationService();
 
+  Future<void> _loadNotificationSettings() async {
+    final enabled = await _notificationService.getNotificationsEnabled();
+    setState(() => notificationsEnabled = enabled);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -27,12 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _emailController = TextEditingController(text: user?.email ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _passwordController = TextEditingController();
-
-  Future<void> _loadNotificationSettings() async {
-    final enabled = await _notificationService.getNotificationsEnabled();
-    setState(() => notificationsEnabled = enabled);
-  }
-
   }
 
   @override
