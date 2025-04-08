@@ -7,6 +7,7 @@ import '../providers/user_provider.dart';
 import '../services/api_service.dart';
 import '../models/product.dart';
 import '../models/category.dart';
+import '../services/notification_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/category_card.dart';
 import 'product_list_screen.dart';
@@ -74,12 +75,48 @@ class _HomeScreenState extends State<HomeScreen> {
           centerTitle: true,
           backgroundColor: const Color(0xff180cb5),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()), // NotificationsScreen needs to be defined
-              ),
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/notifications');
+                    NotificationService().markAllAsRead();
+                  },
+                ),
+                StreamBuilder<int>(
+                  stream: Stream.periodic(const Duration(seconds: 1))
+                      .asyncMap((_) => NotificationService().getUnreadCount()),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data! > 0) {
+                      return Positioned(
+                        right: 5,
+                        top: 5,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '${snapshot.data}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox();
+                  },
+                ),
+              ],
             ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.g_translate, color: Colors.white),

@@ -1,3 +1,4 @@
+import 'package:creditphoneqa/screens/notifications_screen.dart';
 import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -31,5 +32,7 @@ class AppRoutes {
     '/settings': (context) => SettingsScreen(),
     '/privacy': (context) =>  PrivacyPolicyScreen(),
     '/terms': (context) =>  TermsScreen(),
+    '/notifications': (context) =>  NotificationsScreen(),
+
   };
 }
