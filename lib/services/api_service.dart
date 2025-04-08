@@ -61,17 +61,58 @@ class ApiService {
   }
 
   // إنشاء طلب جديد (Order)
-  Future<Map<String, dynamic>> createOrder(Map<String, dynamic> orderData) async {
+  Future<Map<String, dynamic>> createOrder({
+    required String customerName,
+    required String customerEmail,
+    required String customerPhone,
+    required List<Map<String, dynamic>> lineItems,
+    required String installmentType,
+    Map<String, dynamic>? customInstallment,
+    required bool isNewCustomer,
+    String? customerNote,
+  }) async {
     String url = "$baseUrl/orders?consumer_key=$ck&consumer_secret=$cs";
+    
+    String orderNotes = "Installment Type: $installmentType\n";
+    if (customInstallment != null) {
+      orderNotes += """
+Down Payment: ${customInstallment['downPayment']} QAR
+Remaining Amount: ${customInstallment['remainingAmount']} QAR
+Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
+""";
+    }
+    orderNotes += "\nNew Customer: ${isNewCustomer ? 'Yes' : 'No'}";
+    if (customerNote?.isNotEmpty ?? false) {
+      orderNotes += "\n\nCustomer Note: $customerNote";
+    }
+
+    final orderData = {
+      'status': 'pending',
+      'customer_note': orderNotes,
+      'billing': {
+        'first_name': customerName,
+        'email': customerEmail,
+        'phone': customerPhone,
+      },
+      'line_items': lineItems,
+      'meta_data': [
+        {'key': 'installment_type', 'value': installmentType},
+        {'key': 'is_new_customer', 'value': isNewCustomer},
+        if (customInstallment != null) 
+          {'key': 'custom_installment', 'value': json.encode(customInstallment)},
+      ],
+    };
+
     final response = await http.post(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(orderData),
     );
+    
     if (response.statusCode == 201) {
       return jsonDecode(response.body);
     } else {
-      throw Exception("Failed to create order");
+      throw Exception("Failed to create order: ${response.body}");
     }
   }
   Future<List<Order>> getOrders({

@@ -144,6 +144,77 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final lang = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
     final isAr = lang == 'ar';
 
+    // Show new customer dialog
+    bool? isNewCustomer = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isAr ? 'هل أنت عميل جديد؟' : 'Are you a new customer?'),
+          actions: [
+            TextButton(
+              child: Text(isAr ? 'لا' : 'No'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: Text(isAr ? 'نعم' : 'Yes'),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (isNewCustomer == null) return; // User cancelled
+
+    try {
+      setState(() => _loading = true);
+
+      final items = cartProvider.items;
+      final lineItems = items.map((item) => {
+        'product_id': item.product.id,
+        'quantity': item.quantity,
+      }).toList();
+
+      final result = await _apiService.createOrder(
+        customerName: _fullNameController.text.trim(),
+        customerEmail: _emailController.text.trim(),
+        customerPhone: _phoneController.text.trim(),
+        lineItems: lineItems,
+        installmentType: item.installmentPlan.type,
+        customInstallment: item.installmentPlan.type == 'custom' ? {
+          'downPayment': item.installmentPlan.downPayment,
+          'remainingAmount': item.installmentPlan.remainingAmount,
+          'monthlyPayment': item.installmentPlan.monthlyPayment,
+        } : null,
+        isNewCustomer: isNewCustomer,
+        customerNote: _noteController.text.trim(),
+      );
+
+      cartProvider.clearCart();
+      
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/orders', 
+        (route) => route.settings.name == '/main'
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isAr ? 'تم إرسال الطلب بنجاح' : 'Order placed successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isAr ? 'فشل إرسال الطلب: $e' : 'Failed to place order: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _loading = false);
+    }
+
     final fullName = _fullNameController.text.trim().isEmpty
         ? userProvider.user?.username ?? ""
         : _fullNameController.text.trim();
