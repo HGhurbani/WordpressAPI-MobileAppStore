@@ -19,6 +19,10 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final apiService = ApiService();
   late Future<Product> _futureProduct;
+  bool _isCustomPlan = false;
+  final TextEditingController _downPaymentController = TextEditingController();
+  String? _downPaymentError;
+  InstallmentPlan? _installmentPlan;
 
   @override
   void initState() {
@@ -171,6 +175,108 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         const SizedBox(height: 8),
                         Html(data: product.description),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Installment Plan Selection
+                Card(
+                  color: Colors.white,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_month, color: Color(0xff1d0fe3)),
+                            const SizedBox(width: 6),
+                            Text(
+                              isArabic ? "خطة التقسيط" : "Installment Plan",
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        StatefulBuilder(
+                          builder: (context, setState) {
+                            return Column(
+                              children: [
+                                // Default Plan Option
+                                RadioListTile<bool>(
+                                  value: false,
+                                  groupValue: _isCustomPlan,
+                                  title: Text(isArabic ? "الخطة الافتراضية" : "Default Plan"),
+                                  onChanged: (value) => setState(() => _isCustomPlan = false),
+                                ),
+                                if (!_isCustomPlan) ...[
+                                  Html(data: product.shortDescription),
+                                ],
+                                
+                                // Custom Plan Option
+                                RadioListTile<bool>(
+                                  value: true,
+                                  groupValue: _isCustomPlan,
+                                  title: Text(isArabic ? "خطة مخصصة" : "Custom Plan"),
+                                  onChanged: (value) => setState(() => _isCustomPlan = true),
+                                ),
+                                if (_isCustomPlan) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        TextField(
+                                          controller: _downPaymentController,
+                                          keyboardType: TextInputType.number,
+                                          decoration: InputDecoration(
+                                            labelText: isArabic ? "الدفعة الأولى" : "Down Payment",
+                                            hintText: isArabic ? "الحد الأدنى 1250" : "Minimum 1250",
+                                            errorText: _downPaymentError,
+                                          ),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              double? amount = double.tryParse(value);
+                                              if (amount == null) {
+                                                _downPaymentError = isArabic ? "يرجى إدخال رقم صحيح" : "Please enter a valid number";
+                                              } else if (amount < 1250) {
+                                                _downPaymentError = isArabic ? "يجب أن تكون الدفعة الأولى 1250 على الأقل" : "Down payment must be at least 1250";
+                                              } else {
+                                                _downPaymentError = null;
+                                                _installmentPlan = InstallmentPlan.calculateCustomPlan(product.price, amount);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                        if (_installmentPlan != null && _downPaymentError == null) ...[
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            isArabic
+                                                ? "السعر الإجمالي: ${_installmentPlan!.totalPrice} ر.ق"
+                                                : "Total Price: QAR ${_installmentPlan!.totalPrice}",
+                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            isArabic
+                                                ? "4 أقساط شهرية × ${_installmentPlan!.monthlyPayments[0]} ر.ق"
+                                                : "4 Monthly Payments × QAR ${_installmentPlan!.monthlyPayments[0]}",
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
