@@ -36,7 +36,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _hasChecks;
   String? _canObtainChecks;
 
-  final whatsappNumber = "97450105685";
 
   @override
   @override
@@ -104,13 +103,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     _buildTextField(_passwordController, isAr ? "كلمة المرور" : "Password", obscure: true),
                     const SizedBox(height: 10),
                     _buildRadioQuestion(isAr ? "هل تقيم في قطر؟" : "Are you resident in Qatar?", _residentInQatar,
-                            (v) => setState(() => _residentInQatar = v), lang),
+                        (v) => setState(() => _residentInQatar = v), lang),
                     if (_residentInQatar == "yes")
                       _buildRadioQuestion(isAr ? "هل لديك شيكات؟" : "Do you have checks?", _hasChecks,
-                              (v) => setState(() => _hasChecks = v), lang),
+                          (v) => setState(() => _hasChecks = v), lang),
                     if (_hasChecks == "no")
                       _buildRadioQuestion(isAr ? "هل يمكنك استخراج شيكات؟" : "Can you obtain checks?", _canObtainChecks,
-                              (v) => setState(() => _canObtainChecks = v), lang),
+                          (v) => setState(() => _canObtainChecks = v), lang),
                     _buildTextField(_noteController, isAr ? "ملاحظة" : "Note", maxLines: 3),
                   ],
                 ),
@@ -181,28 +180,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final lang = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
     final isAr = lang == 'ar';
 
-    // Show new customer dialog
-    bool? isNewCustomer = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(isAr ? 'هل أنت عميل جديد؟' : 'Are you a new customer?'),
-          actions: [
-            TextButton(
-              child: Text(isAr ? 'لا' : 'No'),
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-            TextButton(
-              child: Text(isAr ? 'نعم' : 'Yes'),
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-          ],
-        );
-      },
-    );
+    bool? isNewCustomer;
+    if (!isLoggedIn) {
+      isNewCustomer = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(isAr ? 'هل أنت عميل جديد؟' : 'Are you a new customer?'),
+            actions: [
+              TextButton(
+                child: Text(isAr ? 'لا' : 'No'),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+              TextButton(
+                child: Text(isAr ? 'نعم' : 'Yes'),
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
+          );
+        },
+      );
+    }
 
-    if (isNewCustomer == null) return; // User cancelled
+    if (isNewCustomer == null && !isLoggedIn) return; // User cancelled
 
     try {
       setState(() => _loading = true);
@@ -222,7 +223,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         installmentNotes.writeln('Remaining Amount: ${plan?.remainingAmount} QAR');
         installmentNotes.writeln('Monthly Payment: ${plan?.monthlyPayment} QAR (4 installments)');
       }
-      installmentNotes.writeln('Customer Status: ${isNewCustomer ? 'New Customer' : 'Existing Customer'}');
+      installmentNotes.writeln('Customer Status: ${isNewCustomer ?? (isLoggedIn ? 'Existing Customer' : 'New Customer')}');
 
       final result = await _apiService.createOrder(
         customerName: _fullNameController.text.trim(),
@@ -230,12 +231,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         customerPhone: _phoneController.text.trim(),
         lineItems: lineItems,
         installmentType: items.first.installmentPlan?.type ?? 'standard',
-        isNewCustomer: isNewCustomer,
+        isNewCustomer: isNewCustomer ?? isLoggedIn,
         customerNote: '${_noteController.text.trim()}\n\nInstallment Plan Details:\n$installmentNotes',
       );
 
       cartProvider.clearCart();
-      
+
       // Show success dialog
       await showDialog(
         context: context,
@@ -266,8 +267,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/orders',
-                  (route) => route.settings.name == '/main'
+                    '/orders',
+                        (route) => route.settings.name == '/main'
                 );
               },
               child: Text(isAr ? 'حسناً' : 'OK'),
@@ -278,7 +279,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isAr ? 'تم إرسال الطلب بنجاح' : 'Order placed successfully'),
+          content: Text(isAr ? 'تم استلام طلبك وهو قيد المراجعة. سنتواصل معك قريباً' : 'Your order has been received and is under review. We will contact you soon.'),
           backgroundColor: Colors.green,
         ),
       );
@@ -292,111 +293,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } finally {
       setState(() => _loading = false);
     }
-
-    final fullName = _fullNameController.text.trim().isEmpty
-        ? userProvider.user?.username ?? ""
-        : _fullNameController.text.trim();
-
-    final phone = _phoneController.text.trim().isEmpty
-        ? userProvider.user?.phone ?? ""
-        : _phoneController.text.trim();
-
-    final note = _noteController.text.trim();
-    final items = cartProvider.items;
-    final total = cartProvider.totalAmount.toStringAsFixed(2);
-    final priceText = isAr ? "ر.ق" : "QAR";
-
-    final orderDetails = StringBuffer();
-    for (var item in items) {
-      orderDetails.writeln("- ${item.product.name} × ${item.quantity}");
-    }
-
-    final message = StringBuffer()
-      ..writeln("📦 ${isAr ? 'طلب جديد' : 'New Order'}")
-      ..writeln("👤 ${isAr ? 'الاسم' : 'Name'}: $fullName")
-      ..writeln("📱 ${isAr ? 'الهاتف' : 'Phone'}: $phone")
-      ..writeln("📝 ${isAr ? 'ملاحظة' : 'Note'}: $note")
-      ..writeln("🛒 ${isAr ? 'المنتجات' : 'Products'}:\n$orderDetails")
-      ..writeln("💰 ${isAr ? 'الإجمالي' : 'Total'}: $priceText $total");
-
-    // إظهار مربع تأكيد قبل الإرسال
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(isAr ? "تأكيد الطلب" : "Confirm Order"),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("${isAr ? 'الاسم' : 'Name'}: $fullName"),
-              Text("${isAr ? 'الهاتف' : 'Phone'}: $phone"),
-              if (note.isNotEmpty) Text("${isAr ? 'ملاحظة' : 'Note'}: $note"),
-              const Divider(height: 20),
-              Text(isAr ? "المنتجات المطلوبة:" : "Ordered Products:"),
-              Text(orderDetails.toString()),
-              const Divider(height: 20),
-              Text("${isAr ? 'الإجمالي' : 'Total'}: $priceText $total",
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(isAr ? "إلغاء" : "Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context); // إغلاق مربع التأكيد
-              setState(() => _loading = true);
-
-              try {
-                // إذا لم يكن المستخدم مسجلاً
-                if (!isLoggedIn) {
-                  final username = _fullNameController.text.trim();
-                  final email = _emailController.text.trim();
-                  final password = _passwordController.text.trim();
-
-                  // تسجيل وإنشاء المستخدم
-                  final newUser = await _authService.register(username, email, password,phone);
-
-                  // حفظ بيانات المستخدم
-                  Provider.of<UserProvider>(context, listen: false).setUser(newUser);
-                }
-
-                final encodedMessage = Uri.encodeComponent(message.toString());
-                final url = Uri.parse("https://wa.me/$whatsappNumber?text=$encodedMessage");
-
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-
-                cartProvider.clearCart();
-                setState(() => _loading = false);
-                Navigator.popUntil(context, ModalRoute.withName('/main'));
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(isAr ? "تم إرسال الطلب" : "Order sent via WhatsApp")),
-                );
-              } catch (e) {
-                setState(() => _loading = false);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(isAr ? "فشل إرسال الطلب: $e" : "Failed to place order: $e")),
-                );
-              }
-            },
-
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1d0fe3),
-              foregroundColor: Colors.white,
-            ),
-            child: Text(isAr ? "تأكيد الطلب" : "Confirm Order"),
-          ),
-        ],
-      ),
-    );
   }
 
 }
