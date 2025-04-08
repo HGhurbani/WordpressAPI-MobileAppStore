@@ -10,6 +10,10 @@ import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 
+extension ContextExtensions on BuildContext {
+  bool get isAr => Provider.of<LocaleProvider>(this).locale.languageCode == 'ar';
+}
+
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -225,6 +229,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         customerEmail: _emailController.text.trim(),
         customerPhone: _phoneController.text.trim(),
         lineItems: lineItems,
+        installmentType: items.first.installmentPlan?.type ?? 'standard',
+        isNewCustomer: isNewCustomer,
         customerNote: '${_noteController.text.trim()}\n\nInstallment Plan Details:\n$installmentNotes',
       );
 
