@@ -49,6 +49,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (userProvider.isLoggedIn) {
         _emailController.text = userProvider.user?.email ?? '';
         _phoneController.text = userProvider.user?.phone ?? '';
+        _fullNameController.text = userProvider.user?.username ?? '';
       }
     });
   }
