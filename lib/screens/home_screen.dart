@@ -1,3 +1,4 @@
+import 'package:creditphoneqa/screens/notifications_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
@@ -73,6 +74,13 @@ class _HomeScreenState extends State<HomeScreen> {
           centerTitle: true,
           backgroundColor: const Color(0xff180cb5),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()), // NotificationsScreen needs to be defined
+              ),
+            ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.g_translate, color: Colors.white),
               onSelected: (String value) {
@@ -95,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             )
           ],
+
         ),
         drawer: Drawer(
           backgroundColor: Colors.white,

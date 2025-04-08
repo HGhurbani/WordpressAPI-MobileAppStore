@@ -1,0 +1,124 @@
+{
+  "project_info": {
+    "project_number": "641037176066",
+    "project_id": "book-3d7c1",
+    "storage_bucket": "book-3d7c1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641037176066:android:ceb3c46ae5f4436cc2061b",
+        "android_client_info": {
+          "package_name": "com.creditphone.qatar.creditphoneqa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSl6tHzf6x-WQAC4ecuuquoUGtwFfvUn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641037176066:android:c6338fb2c8d84295c2061b",
+        "android_client_info": {
+          "package_name": "com.hazem.belify"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSl6tHzf6x-WQAC4ecuuquoUGtwFfvUn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641037176066:android:fd010bd7dcd35e0cc2061b",
+        "android_client_info": {
+          "package_name": "com.softcircle.tmailapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSl6tHzf6x-WQAC4ecuuquoUGtwFfvUn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641037176066:android:7cb7f0b743ff6b92c2061b",
+        "android_client_info": {
+          "package_name": "com.tctech.admin.mobijet"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSl6tHzf6x-WQAC4ecuuquoUGtwFfvUn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641037176066:android:09dde64e7e7cf5d3c2061b",
+        "android_client_info": {
+          "package_name": "com.thebest.wallpapers"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSl6tHzf6x-WQAC4ecuuquoUGtwFfvUn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641037176066:android:1155e390520fd8bbc2061b",
+        "android_client_info": {
+          "package_name": "com.vids.statussaver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSl6tHzf6x-WQAC4ecuuquoUGtwFfvUn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

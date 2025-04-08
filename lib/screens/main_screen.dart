@@ -1,3 +1,4 @@
+import 'package:creditphoneqa/screens/notifications_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'home_screen.dart';
@@ -40,18 +41,7 @@ class _MainScreenState extends State<MainScreen> {
           languageCode == "ar" ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         extendBody: true, // مهم لتمديد الجسم تحت الناف بار
-        appBar: AppBar(
-          title: const Text('MyApp'), //Example title - replace as needed
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.notifications),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const NotificationsScreen()), // NotificationsScreen needs to be defined
-              ),
-            ),
-          ],
-        ),
+
         body: IndexedStack(
           index: _selectedIndex,
           children: _screens,
