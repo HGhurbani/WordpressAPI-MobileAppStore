@@ -173,12 +173,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
   Future<void> _placeOrder() async {
     final isLoggedIn = Provider.of<UserProvider>(context, listen: false).isLoggedIn;
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final lang = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
     final isAr = lang == 'ar';
+
+    // Validate email
+    if (!_isValidEmail(_emailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isAr ? 'الرجاء إدخال بريد إلكتروني صحيح' : 'Please enter a valid email address'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     bool? isNewCustomer;
     if (!isLoggedIn) {
