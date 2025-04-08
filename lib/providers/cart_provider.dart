@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/product.dart';
+import '../Models/installment_plan.dart';
 
 class CartProvider extends ChangeNotifier {
   // هيكل المنتج في السلة: {product: Product, quantity: int}
@@ -65,6 +66,11 @@ class CartProvider extends ChangeNotifier {
 class _CartItem {
   final Product product;
   int quantity;
+  InstallmentPlan? installmentPlan;
 
-  _CartItem({required this.product, this.quantity = 1});
+  _CartItem({
+    required this.product, 
+    this.quantity = 1,
+    this.installmentPlan,
+  });
 }
