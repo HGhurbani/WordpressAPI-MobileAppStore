@@ -8,6 +8,7 @@ import '../providers/cart_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -18,6 +19,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _authService = AuthService();
+  final _apiService = ApiService();
   bool _loading = false;
 
   final _noteController = TextEditingController();
