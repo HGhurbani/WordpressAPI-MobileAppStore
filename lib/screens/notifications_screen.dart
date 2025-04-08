@@ -16,6 +16,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     _loadNotifications();
+    NotificationService().markAllAsRead();
   }
 
   Future<void> _loadNotifications() async {

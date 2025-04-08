@@ -79,6 +79,7 @@ class NotificationService {
   Future<void> _saveNotification(RemoteMessage message) async {
     final prefs = await SharedPreferences.getInstance();
     final notifications = prefs.getStringList('notifications') ?? [];
+    final unreadCount = prefs.getInt('unread_notifications') ?? 0;
 
     final newNotification = {
       'title': message.notification?.title,
@@ -87,10 +88,31 @@ class NotificationService {
       'type': message.data['type'] ?? 'general',
       'orderId': message.data['order_id'],
       'orderStatus': message.data['order_status'],
+      'isRead': false,
     };
 
     notifications.insert(0, jsonEncode(newNotification));
     await prefs.setStringList('notifications', notifications);
+    await prefs.setInt('unread_notifications', unreadCount + 1);
+  }
+
+  Future<int> getUnreadCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('unread_notifications') ?? 0;
+  }
+
+  Future<void> markAllAsRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    final notifications = prefs.getStringList('notifications') ?? [];
+    
+    final updatedNotifications = notifications.map((notificationStr) {
+      final notification = jsonDecode(notificationStr);
+      notification['isRead'] = true;
+      return jsonEncode(notification);
+    }).toList();
+
+    await prefs.setStringList('notifications', updatedNotifications);
+    await prefs.setInt('unread_notifications', 0);
   }
 
   Future<void> setNotificationsEnabled(bool enabled) async {

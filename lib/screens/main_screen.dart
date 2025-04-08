@@ -6,6 +6,7 @@ import 'cart_screen.dart';
 import 'profile_screen.dart';
 import '../providers/locale_provider.dart';
 import '../providers/cart_provider.dart';
+import '../services/notification_service.dart'; // Import the NotificationService
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -40,8 +41,55 @@ class _MainScreenState extends State<MainScreen> {
       textDirection:
           languageCode == "ar" ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        extendBody: true, // مهم لتمديد الجسم تحت الناف بار
-
+        extendBody: true, 
+        appBar: AppBar(
+          title: Text(navLabels[_selectedIndex]),
+          actions: [
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/notifications');
+                    NotificationService().markAllAsRead();
+                  },
+                ),
+                StreamBuilder<int>(
+                  stream: Stream.periodic(const Duration(seconds: 1))
+                      .asyncMap((_) => NotificationService().getUnreadCount()),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData && snapshot.data! > 0) {
+                      return Positioned(
+                        right: 5,
+                        top: 5,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '${snapshot.data}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
         body: IndexedStack(
           index: _selectedIndex,
           children: _screens,
@@ -49,7 +97,7 @@ class _MainScreenState extends State<MainScreen> {
         bottomNavigationBar: Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           decoration: BoxDecoration(
-            color: Colors.white, // مربع أبيض فقط
+            color: Colors.white, 
             borderRadius: BorderRadius.circular(50),
             boxShadow: [
               BoxShadow(
@@ -64,7 +112,7 @@ class _MainScreenState extends State<MainScreen> {
             child: BottomNavigationBar(
               currentIndex: _selectedIndex,
               onTap: _onItemTapped,
-              backgroundColor: Colors.transparent, // الخلفية الداخلية شفافة
+              backgroundColor: Colors.transparent, 
               elevation: 0,
               selectedItemColor: const Color(0xff1d0fe3),
               unselectedItemColor: Colors.grey,
