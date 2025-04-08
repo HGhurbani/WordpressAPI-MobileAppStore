@@ -43,6 +43,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAuthentication();
+      
+      // Auto-fill user data if logged in
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (userProvider.isLoggedIn) {
+        _emailController.text = userProvider.user?.email ?? '';
+        _phoneController.text = userProvider.user?.phone ?? '';
+      }
     });
   }
 
