@@ -35,6 +35,37 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final whatsappNumber = "97450105685";
 
   @override
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuthentication();
+    });
+  }
+
+  void _checkAuthentication() {
+    final isLoggedIn = Provider.of<UserProvider>(context, listen: false).isLoggedIn;
+    if (!isLoggedIn) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: Text(context.isAr ? 'تسجيل الدخول مطلوب' : 'Login Required'),
+          content: Text(context.isAr ? 'يرجى تسجيل الدخول للمتابعة' : 'Please login to continue'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushReplacementNamed('/login');
+              },
+              child: Text(context.isAr ? 'تسجيل الدخول' : 'Login'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   Widget build(BuildContext context) {
     final isLoggedIn = Provider.of<UserProvider>(context).isLoggedIn;
     final lang = Provider.of<LocaleProvider>(context).locale.languageCode;
@@ -178,26 +209,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'quantity': item.quantity,
       }).toList();
 
+      // Build installment plan notes
+      final installmentNotes = StringBuffer();
+      final plan = items.first.installmentPlan;
+      installmentNotes.writeln('Plan Type: ${plan?.type ?? 'standard'}');
+      if (plan?.type == 'custom') {
+        installmentNotes.writeln('Down Payment: ${plan?.downPayment} QAR');
+        installmentNotes.writeln('Remaining Amount: ${plan?.remainingAmount} QAR');
+        installmentNotes.writeln('Monthly Payment: ${plan?.monthlyPayment} QAR (4 installments)');
+      }
+      installmentNotes.writeln('Customer Status: ${isNewCustomer ? 'New Customer' : 'Existing Customer'}');
+
       final result = await _apiService.createOrder(
         customerName: _fullNameController.text.trim(),
         customerEmail: _emailController.text.trim(),
         customerPhone: _phoneController.text.trim(),
         lineItems: lineItems,
-        installmentType: items.first.installmentPlan?.type ?? 'standard',
-        customInstallment: items.first.installmentPlan?.type == 'custom' ? {
-          'downPayment': items.first.installmentPlan?.downPayment,
-          'remainingAmount': items.first.installmentPlan?.remainingAmount,
-          'monthlyPayment': items.first.installmentPlan?.monthlyPayment,
-        } : null,
-        isNewCustomer: isNewCustomer,
-        customerNote: _noteController.text.trim(),
+        customerNote: '${_noteController.text.trim()}\n\nInstallment Plan Details:\n$installmentNotes',
       );
 
       cartProvider.clearCart();
       
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/orders', 
-        (route) => route.settings.name == '/main'
+      // Show success dialog
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isAr ? 'تم تقديم طلبك بنجاح' : 'Order Placed Successfully',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isAr ? 'سنتواصل معك خلال الساعات القليلة القادمة' : "We'll contact you within the next few hours",
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/orders',
+                  (route) => route.settings.name == '/main'
+                );
+              },
+              child: Text(isAr ? 'حسناً' : 'OK'),
+            ),
+          ],
+        ),
       );
 
       ScaffoldMessenger.of(context).showSnackBar(

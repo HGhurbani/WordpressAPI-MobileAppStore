@@ -104,6 +104,40 @@ class CartScreen extends StatelessWidget {
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
+                                if (cartItem.installmentPlan != null) ...[
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1d0fe3).withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          isArabic ? "خطة التقسيط" : "Installment Plan",
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "${isArabic ? 'النوع: ' : 'Type: '}${cartItem.installmentPlan!.type == 'custom' ? (isArabic ? 'مخصص' : 'Custom') : (isArabic ? 'قياسي' : 'Standard')}",
+                                        ),
+                                        if (cartItem.installmentPlan!.type == 'custom') ...[
+                                          Text(
+                                            "${isArabic ? 'الدفعة الأولى: ' : 'Down Payment: '}$priceText ${cartItem.installmentPlan!.downPayment}",
+                                          ),
+                                          Text(
+                                            "${isArabic ? 'المبلغ المتبقي: ' : 'Remaining: '}$priceText ${cartItem.installmentPlan!.remainingAmount}",
+                                          ),
+                                          Text(
+                                            "${isArabic ? 'القسط الشهري: ' : 'Monthly: '}$priceText ${cartItem.installmentPlan!.monthlyPayment}",
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
