@@ -5,6 +5,7 @@ import 'routes.dart';
 import 'providers/cart_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/locale_provider.dart';
+import 'package:firebase_core/firebase_core.dart'; // Import Firebase
 
 /// تعريف اللون الأساسي مع درجاته
 const MaterialColor customPrimarySwatch = MaterialColor(
@@ -23,8 +24,22 @@ const MaterialColor customPrimarySwatch = MaterialColor(
   },
 );
 
+class NotificationService {
+  Future<void> initialize() async {
+    // Placeholder:  Replace with actual Firebase Messaging initialization
+    print('Notification service initialized (placeholder)');
+  }
+
+  // Add methods to send notifications here.  This requires FCM integration.
+}
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  final notificationService = NotificationService();
+  await notificationService.initialize();
 
   final userProvider = UserProvider();
   await userProvider.loadUserFromPrefs(); // تحميل المستخدم من SharedPreferences
