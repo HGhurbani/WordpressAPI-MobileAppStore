@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../providers/locale_provider.dart';
+import 'notification_explanation_screen.dart'; // Import the new screen
+import '../services/notification_service.dart'; //Import Notification Service
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -17,6 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   String? _language;
+
 
   final List<Map<String, Map<String, String>>> splashData = [
     {
@@ -61,13 +65,14 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     _loadLanguage();
-    _initializeNotifications();
+    // _initializeNotifications(); //Moved to after language loading
   }
 
   Future<void> _initializeNotifications() async {
     final notificationService = NotificationService();
     await notificationService.initialize();
   }
+
 
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -76,6 +81,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (savedLang != null) {
       setState(() => _language = savedLang);
       Provider.of<LocaleProvider>(context, listen: false).setLocale(Locale(savedLang));
+      _navigateToNextScreen(); //Call after language is loaded.
     }
   }
 
@@ -84,13 +90,34 @@ class _SplashScreenState extends State<SplashScreen> {
     await prefs.setString('app_lang', langCode);
     setState(() => _language = langCode);
     Provider.of<LocaleProvider>(context, listen: false).setLocale(Locale(langCode));
+    _navigateToNextScreen();
   }
+
+  Future<void> _navigateToNextScreen() async {
+    await Future.delayed(const Duration(seconds: 2));
+    final notificationService = NotificationService();
+    final notificationsEnabled = await notificationService.getNotificationsEnabled();
+
+    if (!notificationsEnabled) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const NotificationExplanationScreen()),
+      );
+
+      if (result == true) {
+        await notificationService.initialize();
+      }
+    }
+
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
 
   void _next() {
     if (_currentPage < splashData.length - 1) {
       _pageController.nextPage(duration: const Duration(milliseconds: 400), curve: Curves.easeInOut);
     } else {
-      Navigator.pushReplacementNamed(context, '/main');
+      _navigateToNextScreen(); //Use the new function
     }
   }
 

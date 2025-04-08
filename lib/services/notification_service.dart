@@ -2,10 +2,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences.dart';
-
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print("Handling background message: ${message.messageId}");
-}
+import 'dart:convert';
 
 class NotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
@@ -13,15 +10,13 @@ class NotificationService {
   static const String NOTIFICATIONS_ENABLED_KEY = 'notifications_enabled';
 
   Future<void> initialize() async {
-    // Check if notifications are enabled
     final prefs = await SharedPreferences.getInstance();
-    final bool notificationsEnabled = prefs.getBool(NOTIFICATIONS_ENABLED_KEY) ?? true;
+    final bool notificationsEnabled = prefs.getBool(NOTIFICATIONS_ENABLED_KEY) ?? false;
 
     if (notificationsEnabled) {
       await _requestPermission();
     }
     
-    // Initialize local notifications
     const initializationSettings = InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       iOS: DarwinInitializationSettings(
@@ -33,12 +28,11 @@ class NotificationService {
     
     await _localNotifications.initialize(initializationSettings);
     
-    // Handle background messages
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     
-    // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _showNotification(message.notification?.title ?? '', message.notification?.body ?? '');
+      _saveNotification(message);
     });
   }
 
@@ -51,16 +45,11 @@ class NotificationService {
     
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       String? token = await _fcm.getToken();
-      print('FCM Token: $token'); // Store this token in your backend
+      print('FCM Token: $token');
     }
   }
 
   Future<void> _showNotification(String title, String body) async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool notificationsEnabled = prefs.getBool(NOTIFICATIONS_ENABLED_KEY) ?? true;
-    
-    if (!notificationsEnabled) return;
-
     const androidDetails = AndroidNotificationDetails(
       'order_status_channel',
       'Order Status Updates',
@@ -78,6 +67,20 @@ class NotificationService {
     );
   }
 
+  Future<void> _saveNotification(RemoteMessage message) async {
+    final prefs = await SharedPreferences.getInstance();
+    final notifications = prefs.getStringList('notifications') ?? [];
+    
+    final newNotification = {
+      'title': message.notification?.title,
+      'body': message.notification?.body,
+      'time': DateTime.now().toIso8601String(),
+    };
+    
+    notifications.insert(0, jsonEncode(newNotification));
+    await prefs.setStringList('notifications', notifications);
+  }
+
   Future<void> setNotificationsEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(NOTIFICATIONS_ENABLED_KEY, enabled);
@@ -89,6 +92,6 @@ class NotificationService {
 
   Future<bool> getNotificationsEnabled() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(NOTIFICATIONS_ENABLED_KEY) ?? true;
+    return prefs.getBool(NOTIFICATIONS_ENABLED_KEY) ?? false;
   }
 }
