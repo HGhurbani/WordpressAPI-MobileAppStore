@@ -22,4 +22,8 @@ class Order {
       billingEmail: json['billing']?['email'] ?? '',
     );
   }
+
+  bool get canBeCancelled {
+    return status.toLowerCase() == 'pending' || status.toLowerCase() == 'processing';
+  }
 }

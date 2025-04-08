@@ -79,6 +79,9 @@ class NotificationService {
       'title': message.notification?.title,
       'body': message.notification?.body,
       'time': DateTime.now().toIso8601String(),
+      'type': message.data['type'] ?? 'general',
+      'orderId': message.data['order_id'],
+      'orderStatus': message.data['order_status'],
     };
 
     notifications.insert(0, jsonEncode(newNotification));

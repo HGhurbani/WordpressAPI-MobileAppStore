@@ -133,6 +133,17 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     }
   }
 
+  Future<bool> cancelOrder(int orderId) async {
+    final url = "$baseUrl/orders/$orderId?consumer_key=$ck&consumer_secret=$cs&status=cancelled";
+    
+    final response = await http.put(
+      Uri.parse(url),
+      headers: {"Content-Type": "application/json"},
+    );
+    
+    return response.statusCode == 200;
+  }
+
 
 }
 

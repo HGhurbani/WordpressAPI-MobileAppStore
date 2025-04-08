@@ -61,7 +61,50 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       Text("الإجمالي: ${order.total} ر.س"),
                     ],
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: order.canBeCancelled ? 
+                    TextButton(
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('تأكيد إلغاء الطلب'),
+                            content: const Text('هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('لا'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('نعم'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          try {
+                            final success = await ApiService().cancelOrder(order.id);
+                            if (success) {
+                              setState(() {
+                                _ordersFuture = ApiService().getOrders(
+                                  userEmail: Provider.of<UserProvider>(context, listen: false).user?.email ?? ""
+                                );
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('تم إلغاء الطلب بنجاح')),
+                              );
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('حدث خطأ أثناء إلغاء الطلب')),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('إلغاء الطلب', style: TextStyle(color: Colors.red)),
+                    )
+                    : const Icon(Icons.chevron_right),
                   onTap: () {
                     showDialog(
                       context: context,
