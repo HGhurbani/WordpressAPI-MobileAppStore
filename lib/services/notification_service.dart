@@ -50,6 +50,11 @@ class NotificationService {
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       String? token = await _fcm.getToken();
       print('FCM Token: $token');
+      if (token != null) {
+        // Save the token to shared preferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('fcm_token', token);
+      }
     }
   }
 
