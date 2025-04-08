@@ -37,6 +37,8 @@ class NotificationService {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await Firebase.initializeApp();
 
   final notificationService = NotificationService();
   await notificationService.initialize();
