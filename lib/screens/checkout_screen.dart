@@ -183,11 +183,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         customerEmail: _emailController.text.trim(),
         customerPhone: _phoneController.text.trim(),
         lineItems: lineItems,
-        installmentType: item.installmentPlan.type,
-        customInstallment: item.installmentPlan.type == 'custom' ? {
-          'downPayment': item.installmentPlan.downPayment,
-          'remainingAmount': item.installmentPlan.remainingAmount,
-          'monthlyPayment': item.installmentPlan.monthlyPayment,
+        installmentType: items.first.installmentPlan?.type ?? 'standard',
+        customInstallment: items.first.installmentPlan?.type == 'custom' ? {
+          'downPayment': items.first.installmentPlan?.downPayment,
+          'remainingAmount': items.first.installmentPlan?.remainingAmount,
+          'monthlyPayment': items.first.installmentPlan?.monthlyPayment,
         } : null,
         isNewCustomer: isNewCustomer,
         customerNote: _noteController.text.trim(),
