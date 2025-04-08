@@ -16,15 +16,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _passwordController;
   late TextEditingController _phoneController;
   bool notificationsEnabled = true;
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
+    _loadNotificationSettings();
     final user = Provider.of<UserProvider>(context, listen: false).user;
     _nameController = TextEditingController(text: user?.username ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _passwordController = TextEditingController();
+
+  Future<void> _loadNotificationSettings() async {
+    final enabled = await _notificationService.getNotificationsEnabled();
+    setState(() => notificationsEnabled = enabled);
+  }
+
   }
 
   @override
@@ -76,7 +84,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: isAr ? 'الإشعارات' : 'Notifications',
             trailing: Switch(
               value: notificationsEnabled,
-              onChanged: (val) => setState(() => notificationsEnabled = val),
+              onChanged: (val) async {
+                await _notificationService.setNotificationsEnabled(val);
+                setState(() => notificationsEnabled = val);
+              },
               activeColor: const Color(0xff1d0fe3),
             ),
           ),

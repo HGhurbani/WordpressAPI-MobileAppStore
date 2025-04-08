@@ -61,6 +61,12 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     _loadLanguage();
+    _initializeNotifications();
+  }
+
+  Future<void> _initializeNotifications() async {
+    final notificationService = NotificationService();
+    await notificationService.initialize();
   }
 
   Future<void> _loadLanguage() async {
