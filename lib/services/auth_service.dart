@@ -2,20 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../constants/app_config.dart';
 import '../models/user.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Added import
-
-class ApiService { // Added ApiService class
-  Future<void> updateFcmToken(String email, String fcmToken) async {
-    //  Replace with your actual WordPress webhook update logic.  This is a placeholder.
-    final url = "${AppConfig.baseUrl}/update_fcm_token/$email"; //Example URL, adjust as needed.
-    final response = await http.post(Uri.parse(url), body: {"fcm_token": fcmToken});
-    if (response.statusCode != 200) {
-      print("Error updating FCM token: ${response.statusCode}");
-      // Handle error appropriately
-    }
-  }
-}
-
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api_service.dart';
 
 class AuthService {
   // تسجيل الدخول
