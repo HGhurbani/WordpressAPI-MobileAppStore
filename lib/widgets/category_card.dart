@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import '../models/category.dart';
 import '../screens/product_list_screen.dart';
@@ -9,60 +10,54 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        // عند الضغط على التصنيف، انتقل لشاشة تعرض منتجات هذا التصنيف
-        Navigator.push(
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: InkWell(
+        onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
             builder: (ctx) => ProductListScreen(categoryId: category.id),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.all(6),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          // خلفية شفافة أو بيضاء خفيفة
-          // إطار (border) فقط
-          border: Border.all(color: Colors.grey, width: 1),
-          // حواف دائرية
-          borderRadius: BorderRadius.circular(15),
         ),
-        // محتوى البطاقة: صف يضم الصورة + اسم التصنيف
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        borderRadius: BorderRadius.circular(15),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // صورة التصنيف
-            if (category.image.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                 child: Image.network(
                   category.image,
-                  width: 50,
-                  height: 50,
                   fit: BoxFit.cover,
-                ),
-              )
-            else
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(8),
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.image, size: 50),
+                    );
+                  },
                 ),
               ),
-
-            const SizedBox(width: 8),
-
-            // اسم التصنيف
-            Flexible(
+            ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(15),
+                ),
+              ),
               child: Text(
                 category.name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14),
               ),
             ),
           ],

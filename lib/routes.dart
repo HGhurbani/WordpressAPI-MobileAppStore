@@ -33,6 +33,7 @@ class AppRoutes {
     '/privacy': (context) =>  PrivacyPolicyScreen(),
     '/terms': (context) =>  TermsScreen(),
     '/notifications': (context) =>  NotificationsScreen(),
+    '/categories': (context) => const CategoriesScreen(),
 
   };
 }

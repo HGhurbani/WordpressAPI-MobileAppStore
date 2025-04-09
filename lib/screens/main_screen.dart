@@ -47,6 +47,36 @@ class _MainScreenState extends State<MainScreen> {
           index: _selectedIndex,
           children: _screens,
         ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                ),
+                child: const Text(
+                  'Menu',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.category),
+                title: Text(
+                  languageCode == "ar" ? 'التصنيفات' : 'Categories',
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/categories');
+                },
+              ),
+              // Add more drawer items here
+            ],
+          ),
+        ),
         bottomNavigationBar: Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           decoration: BoxDecoration(
