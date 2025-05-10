@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -6,6 +7,7 @@ import '../models/product.dart';
 import '../services/api_service.dart';
 import '../providers/cart_provider.dart';
 import '../providers/locale_provider.dart';
+import '../utils.dart';
 import 'full_screen_image_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -24,6 +26,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final TextEditingController _downPaymentController = TextEditingController();
   String? _downPaymentError;
   InstallmentPlan? _installmentPlan;
+
+  bool _isExpanded = false; // <-- عشان نتحكم في عرض المزيد
 
   @override
   void initState() {
@@ -64,15 +68,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           final product = snapshot.data!;
           final priceText = isArabic
-              ? "ر.ق ${product.price.toStringAsFixed(2)}"
-              : "QAR ${product.price.toStringAsFixed(2)}";
+              ? "ر.ق ${formatNumber(product.price)}"
+              : "QAR ${formatNumber(product.price)}";
+
+          final double minDownPayment = product.price;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // صورة المنتج
                 GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -95,7 +100,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 20),
 
-                // اسم المنتج
                 Text(
                   product.name,
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -103,7 +107,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 12),
 
-                // السعر
                 Row(
                   children: [
                     const Icon(Icons.price_change, color: Color(0xff1d0fe3)),
@@ -121,7 +124,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                 const SizedBox(height: 20),
 
-                // خطة التقسيط
                 Card(
                   color: Colors.white,
                   margin: const EdgeInsets.symmetric(vertical: 8),
@@ -153,7 +155,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                 ),
 
-                // وصف المنتج
                 Card(
                   color: Colors.white,
                   margin: const EdgeInsets.symmetric(vertical: 8),
@@ -175,144 +176,106 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Html(data: product.description),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Installment Plan Selection
-                Card(
-                  color: Colors.white,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_month, color: Color(0xff1d0fe3)),
-                            const SizedBox(width: 6),
-                            Text(
-                              isArabic ? "خطة التقسيط" : "Installment Plan",
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        // هنا نعرض جزء من الوصف فقط اذا ما كان مضغوط
+                        Html(
+                          data: _isExpanded
+                              ? product.description
+                              : (product.description.length > 300
+                              ? product.description.substring(0, 300) + "..."
+                              : product.description),
+                        ),
+                        // زر عرض المزيد أو عرض أقل
+                        if (product.description.length > 300)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isExpanded = !_isExpanded;
+                                });
+                              },
+                              child: Text(
+                                _isExpanded
+                                    ? (isArabic ? "عرض أقل" : "Show Less")
+                                    : (isArabic ? "عرض المزيد" : "Show More"),
+                                style: const TextStyle(color: Color(0xff1d0fe3)),
+                              ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        StatefulBuilder(
-                          builder: (context, setState) {
-                            return Column(
-                              children: [
-                                // Default Plan Option
-                                RadioListTile<bool>(
-                                  value: false,
-                                  groupValue: _isCustomPlan,
-                                  title: Text(isArabic ? "الخطة الافتراضية" : "Default Plan"),
-                                  onChanged: (value) => setState(() => _isCustomPlan = false),
-                                ),
-                                if (!_isCustomPlan) ...[
-                                  Html(data: product.shortDescription),
-                                ],
-                                
-                                // Custom Plan Option
-                                RadioListTile<bool>(
-                                  value: true,
-                                  groupValue: _isCustomPlan,
-                                  title: Text(isArabic ? "خطة مخصصة" : "Custom Plan"),
-                                  onChanged: (value) => setState(() => _isCustomPlan = true),
-                                ),
-                                if (_isCustomPlan) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        TextField(
-                                          controller: _downPaymentController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: InputDecoration(
-                                            labelText: isArabic ? "الدفعة الأولى" : "Down Payment",
-                                            hintText: isArabic ? "الحد الأدنى 1250" : "Minimum 1250",
-                                            errorText: _downPaymentError,
-                                          ),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              double? amount = double.tryParse(value);
-                                              if (amount == null) {
-                                                _downPaymentError = isArabic ? "يرجى إدخال رقم صحيح" : "Please enter a valid number";
-                                              } else if (amount < 1250) {
-                                                _downPaymentError = isArabic ? "يجب أن تكون الدفعة الأولى 1250 على الأقل" : "Down payment must be at least 1250";
-                                              } else {
-                                                _downPaymentError = null;
-                                                _installmentPlan = InstallmentPlan.calculateCustomPlan(product.price, amount);
-                                              }
-                                            });
-                                          },
-                                        ),
-                                        if (_installmentPlan != null && _downPaymentError == null) ...[
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            isArabic
-                                                ? "السعر الإجمالي: ${_installmentPlan!.totalPrice} ر.ق"
-                                                : "Total Price: QAR ${_installmentPlan!.totalPrice}",
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            isArabic
-                                                ? "4 أقساط شهرية × ${_installmentPlan!.monthlyPayments[0]} ر.ق"
-                                                : "4 Monthly Payments × QAR ${_installmentPlan!.monthlyPayments[0]}",
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            );
-                          },
-                        ),
+                          ),
                       ],
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
-
-                // زر "إضافة للسلة"
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xff1d0fe3),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-                      elevation: 3,
-                    ),
-                    icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
-                    label: Text(
-                      addToCartText,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    onPressed: () {
-                      cartProvider.addToCart(product);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(snackBarText)),
-                      );
-                    },
-                  ),
-                ),
+                const SizedBox(height: 80), // مساحة للزر السفلي
               ],
             ),
           );
         },
       ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              backgroundColor: const Color(0xff1d0fe3),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+              elevation: 3,
+            ),
+            icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
+            label: Text(
+              addToCartText,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            onPressed: () async {
+              final player = AudioPlayer();
+              await player.play(AssetSource('sounds/click.mp3'));
+
+              cartProvider.addToCart(await _futureProduct);
+
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Row(
+                    children: [
+                      const Icon(Icons.shopping_cart, color: Color(0xff1d0fe3)),
+                      const SizedBox(width: 8),
+                      Text(isArabic ? 'تمت الإضافة' : 'Added to Cart'),
+                    ],
+                  ),
+                  content: Text(
+                    isArabic
+                        ? 'تمت إضافة المنتج إلى السلة بنجاح.\nهل ترغب بمتابعة التسوق أو الذهاب إلى السلة؟'
+                        : 'Product has been added to your cart.\nWould you like to continue shopping or go to your cart?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(isArabic ? 'متابعة التسوق' : 'Continue Shopping'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xff1d0fe3)),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.pushNamed(context, '/cart');
+                      },
+                      child: Text(
+                        isArabic ? 'الذهاب للسلة' : 'Go to Cart',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 }
+

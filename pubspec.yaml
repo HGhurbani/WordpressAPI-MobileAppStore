@@ -47,6 +47,7 @@ dependencies:
   firebase_core: ^3.13.0
   firebase_messaging: ^15.2.5
   flutter_local_notifications: ^19.0.0
+  audioplayers: ^6.4.0
 
 
 dev_dependencies:
@@ -73,6 +74,8 @@ flutter:
   assets:
     - assets/images/logo.png
     - assets/images/logo_login.png
+    - assets/sounds/click.mp3
+    - assets/sounds/delete.mp3
 
 
   fonts:

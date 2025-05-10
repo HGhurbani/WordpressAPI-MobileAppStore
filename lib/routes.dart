@@ -1,5 +1,8 @@
+import 'package:creditphoneqa/screens/categories_screen.dart';
 import 'package:creditphoneqa/screens/notifications_screen.dart';
 import 'package:flutter/material.dart';
+import 'screens/about_screen.dart';
+import 'screens/faq_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart'; // تأكد من وجود هذا الملف
@@ -34,6 +37,8 @@ class AppRoutes {
     '/terms': (context) =>  TermsScreen(),
     '/notifications': (context) =>  NotificationsScreen(),
     '/categories': (context) => const CategoriesScreen(),
+    '/about': (context) => const AboutUsScreen(),
+    '/faq': (context) => const FaqScreen(),
 
   };
 }

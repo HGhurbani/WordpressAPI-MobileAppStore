@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/locale_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/notification_service.dart';
@@ -54,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isAr ? 'الإعدادات' : 'Settings'),
+        title: Text(isAr ? 'الإعدادات / Settings' : 'الإعدادات / Settings'),
         backgroundColor: const Color(0xff1d0fe3),
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -65,7 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _sectionCard(
             icon: Icons.language,
-            title: isAr ? 'اللغة' : 'Language',
+            title: isAr ? ' اللغة / Language' : ' اللغة / Language',
             trailing: DropdownButton<String>(
               value: languageCode,
               underline: const SizedBox(),
@@ -147,10 +148,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pushReplacementNamed(context, '/login');
               },
             ),
+            const SizedBox(height: 20),
           ],
+          ListTile(
+            leading: const Icon(Icons.support_agent, color: Color(0xff1d0fe3)),
+            title: Text(isAr ? 'الاستفسارات العامة والشكاوى' : 'General Inquiries & Complaints'),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Text(isAr ? 'وسائل التواصل' : 'Contact Methods'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.phone, color: Colors.green),
+                        title: const Text("50105685"),
+                        onTap: () => _openWhatsApp("+97450105685"),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.phone, color: Colors.green),
+                        title: const Text("77704313"),
+                        onTap: () => _openWhatsApp("+97477704313"),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.email, color: Colors.blue),
+                        title: const Text("support@creditphoneqatar.com"),
+                        onTap: () => _launchEmail("support@creditphoneqatar.com"),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      child: Text(isAr ? 'إغلاق' : 'Close'),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  ],
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
+  }
+  void _openWhatsApp(String phoneNumber) async {
+    final url = "https://wa.me/$phoneNumber";
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 
   Widget _sectionCard({required IconData icon, required String title, required Widget trailing}) {

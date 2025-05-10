@@ -10,17 +10,26 @@ class ApiService {
   final String ck = AppConfig.consumerKey;
   final String cs = AppConfig.consumerSecret;
 
-  // جلب قائمة المنتجات مع دعم اللغة
+  // جلب قائمة المنتجات مع دعم اللغة وفلترة السعر
   Future<List<Product>> getProducts({
     int? categoryId,
     String language = "ar",
     int perPage = 6,
     int page = 1, // ✅ أضف page هنا
+    double? minPrice, // فلترة السعر الأدنى
+    double? maxPrice, // فلترة السعر الأعلى
   }) async {
     String url = "$baseUrl/products?consumer_key=$ck&consumer_secret=$cs&lang=$language&page=$page&per_page=$perPage";
 
+    // إضافة الفلاتر للصنف والسعر إذا كانت موجودة
     if (categoryId != null) {
       url += "&category=$categoryId";
+    }
+    if (minPrice != null) {
+      url += "&min_price=$minPrice";
+    }
+    if (maxPrice != null) {
+      url += "&max_price=$maxPrice";
     }
 
     final response = await http.get(Uri.parse(url));
@@ -32,9 +41,6 @@ class ApiService {
       throw Exception("Failed to load products");
     }
   }
-
-
-
 
   // جلب التصنيفات مع دعم اللغة
   Future<List<Category>> getCategories({String language = "ar"}) async {
@@ -72,7 +78,7 @@ class ApiService {
     String? customerNote,
   }) async {
     String url = "$baseUrl/orders?consumer_key=$ck&consumer_secret=$cs";
-    
+
     String orderNotes = "Installment Type: $installmentType\n";
     if (customInstallment != null) {
       orderNotes += """
@@ -98,7 +104,7 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       'meta_data': [
         {'key': 'installment_type', 'value': installmentType},
         {'key': 'is_new_customer', 'value': isNewCustomer},
-        if (customInstallment != null) 
+        if (customInstallment != null)
           {'key': 'custom_installment', 'value': json.encode(customInstallment)},
       ],
     };
@@ -108,13 +114,14 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(orderData),
     );
-    
+
     if (response.statusCode == 201) {
       return jsonDecode(response.body);
     } else {
       throw Exception("Failed to create order: ${response.body}");
     }
   }
+
   Future<List<Order>> getOrders({
     required String userEmail,
     String language = "ar",
@@ -135,12 +142,12 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
 
   Future<bool> cancelOrder(int orderId) async {
     final url = "$baseUrl/orders/$orderId?consumer_key=$ck&consumer_secret=$cs&status=cancelled";
-    
+
     final response = await http.put(
       Uri.parse(url),
       headers: {"Content-Type": "application/json"},
     );
-    
+
     return response.statusCode == 200;
   }
 
@@ -165,8 +172,4 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       return false;
     }
   }
-
-
-
 }
-

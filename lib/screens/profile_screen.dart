@@ -19,9 +19,15 @@ class ProfileScreen extends StatelessWidget {
     final welcomeText = language == 'ar' ? "مرحباً،" : "Welcome,";
     final emailText = language == 'ar' ? "بريدك:" : "Your email:";
     final logoutButtonText = language == 'ar' ? "تسجيل الخروج" : "Logout";
+    final deleteAccountText = language == 'ar' ? "حذف الحساب" : "Delete Account";
+    final deleteConfirmationText = language == 'ar'
+        ? "هل أنت متأكد أنك تريد حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء."
+        : "Are you sure you want to delete your account? This action cannot be undone.";
+    final cancelText = language == 'ar' ? "إلغاء" : "Cancel";
+    final confirmDeleteText = language == 'ar' ? "تأكيد الحذف" : "Confirm Delete";
     final ordersText = language == 'ar' ? "طلباتي" : "My Orders";
     final addressText = language == 'ar' ? "عناويني" : "My Address";
-    final settingsText = language == 'ar' ? "الإعدادات" : "Settings";
+    final settingsText = language == 'ar' ? "الإعدادات / Settings" : "الإعدادات / Settings";
 
     if (!userProvider.isLoggedIn) {
       return Scaffold(
@@ -74,7 +80,6 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ),
-
       );
     }
 
@@ -109,14 +114,6 @@ class ProfileScreen extends StatelessWidget {
           ),
           const Divider(),
 
-          // ListTile(
-          //   leading: const Icon(Icons.location_on_outlined),
-          //   title: Text(addressText),
-          //   trailing: const Icon(Icons.arrow_forward_ios),
-          //   onTap: () => Navigator.pushNamed(context, '/addresses'),
-          // ),
-          // const Divider(),
-
           ListTile(
             leading: const Icon(Icons.settings_outlined),
             title: Text(settingsText),
@@ -141,9 +138,38 @@ class ProfileScreen extends StatelessWidget {
               child: Text(logoutButtonText),
             ),
           ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                minimumSize: const Size(0, 50),
+              ),
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: Colors.white,
+                    title: Text(deleteAccountText),
+                    content: Text(deleteConfirmationText),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: Text(cancelText)),
+                      TextButton(onPressed: () => Navigator.pop(context, true), child: Text(confirmDeleteText)),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await userProvider.deleteAccount();
+                  Navigator.pushReplacementNamed(context, '/main');
+                }
+              },
+              child: Text(deleteAccountText),
+            ),
+          ),
         ],
       ),
     );
   }
-
 }

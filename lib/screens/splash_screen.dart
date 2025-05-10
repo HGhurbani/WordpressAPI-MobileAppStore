@@ -176,10 +176,25 @@ class _SplashScreenState extends State<SplashScreen> {
                 : (_language == 'ar' ? "التالي" : "Next")),
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Text(
+            _language == 'ar'
+                ? "مرخص من وزارة الصناعة والتجارة"
+                : "Licensed by the Ministry of Commerce and Industry",
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
       ],
     );
   }
+
 
   Widget _buildPage({required String icon, required String title, required String desc}) {
     return Padding(

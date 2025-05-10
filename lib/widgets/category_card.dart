@@ -11,7 +11,8 @@ class CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
+      color: Colors.white,
+      elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15),
       ),
@@ -31,7 +32,7 @@ class CategoryCard extends StatelessWidget {
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                 child: Image.network(
                   category.image,
-                  fit: BoxFit.cover,
+                  // fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
                       color: Colors.grey[200],
@@ -44,7 +45,7 @@ class CategoryCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: Colors.white,
                 borderRadius: const BorderRadius.vertical(
                   bottom: Radius.circular(15),
                 ),
