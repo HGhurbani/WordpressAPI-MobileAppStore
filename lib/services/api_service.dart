@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_config.dart';
 import '../models/product.dart';
 import '../models/category.dart';
@@ -42,6 +43,8 @@ class ApiService {
     }
   }
 
+
+
   // جلب التصنيفات مع دعم اللغة
   Future<List<Category>> getCategories({String language = "ar"}) async {
     String url = "$baseUrl/products/categories?consumer_key=$ck&consumer_secret=$cs&per_page=100&lang=$language";
@@ -53,6 +56,22 @@ class ApiService {
       throw Exception("Failed to load categories");
     }
   }
+
+  Future<List<Product>> getProductsByIds(List<int> ids, {String language = "ar"}) async {
+    List<Product> products = [];
+
+    for (int id in ids) {
+      try {
+        final product = await getProductById(id, language: language);
+        products.add(product);
+      } catch (e) {
+        print("Failed to fetch product with ID $id: $e");
+      }
+    }
+
+    return products;
+  }
+
 
   // جلب منتج واحد عبر الـID مع دعم اللغة
   Future<Product> getProductById(int id, {String language = "ar"}) async {
@@ -133,12 +152,58 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       final List data = jsonDecode(response.body);
       final allOrders = data.map((item) => Order.fromJson(item)).toList();
 
-      // تصفية الطلبات حسب البريد الإلكتروني للمستخدم
+      // فقط طلبات هذا المستخدم
       return allOrders.where((order) => order.billingEmail == userEmail).toList();
     } else {
       throw Exception("فشل تحميل الطلبات");
     }
   }
+
+  Future<bool> updateUserInfo({
+    required String name,
+    required String email,
+    required String phone,
+    String? password,
+  }) async {
+    final url = "$baseUrl/wp-json/custom/v1/update-user";
+
+    final token = await _getUserToken(); // 🔐 التوكن من SharedPreferences أو UserProvider
+
+    final body = {
+      'name': name,
+      'email': email,
+      'phone': phone,
+    };
+
+    if (password != null && password.isNotEmpty) {
+      body['password'] = password;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token', // 👈 توثيق JWT
+        },
+        body: jsonEncode(body),
+      );
+
+      print("Update Response: ${response.statusCode} - ${response.body}");
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Update Error: $e");
+      return false;
+    }
+  }
+
+
+  Future<String?> _getUserToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_token');
+  }
+
 
   Future<bool> cancelOrder(int orderId) async {
     final url = "$baseUrl/orders/$orderId?consumer_key=$ck&consumer_secret=$cs&status=cancelled";

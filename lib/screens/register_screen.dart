@@ -13,11 +13,11 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameController = TextEditingController();
-  final _emailController    = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _phoneController  = TextEditingController();
-  final _confirmController  = TextEditingController();
-  final _authService = AuthService(); // تأكد من وجود دالة register في AuthService
+  final _confirmController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _authService = AuthService();
   bool _loading = false;
 
   void _register() async {
@@ -31,7 +31,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _loading = true);
 
     try {
-      // إنشاء الحساب
       await _authService.register(
         _usernameController.text.trim(),
         _emailController.text.trim(),
@@ -39,7 +38,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _phoneController.text.trim(),
       );
 
-      // تسجيل الدخول تلقائي بعد إنشاء الحساب
       final user = await _authService.login(
         _usernameController.text.trim(),
         _passwordController.text.trim(),
@@ -56,13 +54,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final String language = localeProvider.locale.languageCode;
 
-    // تعيين النصوص بناءً على اللغة
     final String titleText = language == "ar" ? "إنشاء حساب" : "Register";
     final String usernameHint = language == "ar" ? "اسم المستخدم" : "Username";
     final String emailHint = language == "ar" ? "البريد الإلكتروني" : "Email";
@@ -78,30 +74,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: size.height * 0.15),
-              // شعار صفحة التسجيل
+              SizedBox(height: size.height * 0.12),
               Image.asset(
                 'assets/images/logo_login.png',
-                height: 120,
+                height: 200, // تم تكبير الشعار
               ),
-              SizedBox(height: size.height * 0.05),
-              // عنوان الصفحة
+              const SizedBox(height: 30),
               Text(
                 titleText,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1d0fe3),
+                  color: Color(0xFF1A2543),
                 ),
               ),
-              SizedBox(height: size.height * 0.05),
-              // حقل اسم المستخدم
+              const SizedBox(height: 30),
               TextField(
                 controller: _usernameController,
                 decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.person, color: const Color(0xFF1d0fe3)),
+                  prefixIcon: const Icon(Icons.person, color: Color(0xFF1A2543)),
                   hintText: usernameHint,
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -112,12 +104,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // حقل البريد الإلكتروني
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.email, color: const Color(0xFF1d0fe3)),
+                  prefixIcon: const Icon(Icons.email, color: Color(0xFF1A2543)),
                   hintText: emailHint,
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -128,12 +119,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // حقل كلمة المرور
+              TextField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.phone, color: Color(0xFF1A2543)),
+                  hintText: language == "ar" ? "رقم الجوال" : "Phone",
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.lock, color: const Color(0xFF1d0fe3)),
+                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF1A2543)),
                   hintText: passwordHint,
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -144,12 +149,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // حقل تأكيد كلمة المرور
               TextField(
                 controller: _confirmController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  prefixIcon: Icon(Icons.lock_outline, color: const Color(0xFF1d0fe3)),
+                  prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1A2543)),
                   hintText: confirmHint,
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -161,13 +165,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 30),
               _loading
-                  ? CircularProgressIndicator(color: const Color(0xFF1d0fe3))
+                  ? const CircularProgressIndicator(color: Color(0xFF1A2543))
                   : SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _register,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1d0fe3),
+                    backgroundColor: const Color(0xFF1A2543),
                     minimumSize: const Size(0, 50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(50),

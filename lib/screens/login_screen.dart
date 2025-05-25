@@ -1,4 +1,3 @@
-// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,25 +71,25 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: size.height * 0.15),
+              SizedBox(height: size.height * 0.12),
               Image.asset(
                 'assets/images/logo_login.png',
-                height: 120,
+                height: 200, // تم تكبير الشعار
               ),
-              SizedBox(height: size.height * 0.05),
+              const SizedBox(height: 30),
               Text(
                 titleText,
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF1d0fe3),
+                  color: Color(0xFF1A2543),
                 ),
               ),
-              SizedBox(height: size.height * 0.05),
+              const SizedBox(height: 40),
               TextField(
                 controller: _usernameController,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.person, color: Color(0xFF1d0fe3)),
+                  prefixIcon: const Icon(Icons.person, color: Color(0xFF1A2543)),
                   hintText: usernameHint,
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -105,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF1d0fe3)),
+                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF1A2543)),
                   hintText: passwordHint,
                   filled: true,
                   fillColor: Colors.grey[100],
@@ -117,11 +116,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 30),
               _loading
-                  ? const CircularProgressIndicator(color: Color(0xFF1d0fe3))
+                  ? const CircularProgressIndicator(color: Color(0xFF1A2543))
                   : ElevatedButton(
                 onPressed: _login,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1d0fe3),
+                  backgroundColor: const Color(0xFF1A2543),
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(50),
@@ -142,10 +141,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 child: Text(
                   forgotPasswordText,
-                  style: const TextStyle(color: Color(0xFF1d0fe3), fontSize: 16),
+                  style: const TextStyle(color: Color(0xFF6FE0DA), fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
-
               const SizedBox(height: 10),
               TextButton(
                 onPressed: _skipLogin,

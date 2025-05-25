@@ -31,7 +31,7 @@ class FaqScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(isAr ? 'الأسئلة الشائعة' : 'FAQ'),
         centerTitle: true,
-        backgroundColor: const Color(0xff180cb5),
+        backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
       ),
       body: ListView.builder(

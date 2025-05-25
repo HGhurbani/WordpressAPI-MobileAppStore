@@ -1,21 +1,33 @@
-// lib/screens/checkout_screen.dart
-
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../providers/cart_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../utils.dart';
 
 extension ContextExtensions on BuildContext {
-  bool get isAr => Provider.of<LocaleProvider>(this).locale.languageCode == 'ar';
+  bool get isAr => Provider.of<LocaleProvider>(this, listen: false).locale.languageCode == 'ar';
 }
 
 class CheckoutScreen extends StatefulWidget {
-  const CheckoutScreen({super.key});
+  final bool isCustomPlan;
+  final double totalPrice;
+  final double downPayment;
+  final double remainingAmount;
+  final double monthlyPayment;
+  final int numberOfInstallments;
+
+  const CheckoutScreen({
+    Key? key,
+    required this.isCustomPlan,
+    required this.totalPrice,
+    required this.downPayment,
+    required this.remainingAmount,
+    required this.monthlyPayment,
+    required this.numberOfInstallments,
+  }) : super(key: key);
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -35,469 +47,305 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _residentInQatar;
   String? _hasChecks;
   String? _canObtainChecks;
-  bool isCustomPlan = false;
-  final TextEditingController downPaymentController = TextEditingController();
 
-
-
+  final primaryColor = const Color(0xFF1A2543);
+  final secondaryColor = const Color(0xFFDEE3ED);
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      if (userProvider.isLoggedIn) {
-        setState(() {
-          _emailController.text = userProvider.user?.email ?? '';
-          _phoneController.text = userProvider.user?.phone ?? '';
-          _fullNameController.text = userProvider.user?.username ?? '';
-        });
-      }
-
-      // ✅ هنا نستقبل البيانات من السلة فقط مرة واحدة
-      final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      if (arguments != null) {
-        setState(() {
-          isCustomPlan = arguments['isCustomPlan'] ?? false;
-          downPaymentController.text = (arguments['downPayment']?.toString() ?? '');
-        });
-      }
-    });
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (userProvider.isLoggedIn) {
+      _emailController.text = userProvider.user?.email ?? '';
+      _phoneController.text = userProvider.user?.phone ?? '';
+      _fullNameController.text = userProvider.user?.username ?? '';
+    }
   }
 
-
+  @override
   Widget build(BuildContext context) {
-    String getCurrencyName(bool isAr) {
-      return isAr ? "ريال قطري" : "Qatari Riyal";
-    }
-
+    final isAr = context.isAr;
     final isLoggedIn = Provider.of<UserProvider>(context).isLoggedIn;
-    final lang = Provider.of<LocaleProvider>(context).locale.languageCode;
-    final isAr = lang == 'ar';
     final cartItems = Provider.of<CartProvider>(context).items;
-
-    final double installmentProductsTotal = cartItems
-        .where((item) => item.product.shortDescription.trim().isNotEmpty)
-        .fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
-
-    final double cashProductsTotal = cartItems
-        .where((item) => item.product.shortDescription.trim().isEmpty)
-        .fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
-
-    final double downPaymentValue = double.tryParse(downPaymentController.text) ?? 0;
-
-    final double totalPrice = isCustomPlan
-        ? downPaymentValue + cashProductsTotal
-        : installmentProductsTotal + cashProductsTotal;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(isAr ? "إتمام الشراء" : "Checkout"),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF1d0fe3),
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        elevation: 0,
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              elevation: 2,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: isLoggedIn
-                      ? [_buildTextField(_noteController, isAr ? "ملاحظة" : "Note", maxLines: 3)]
-                      : [
-                    _buildTextField(_fullNameController, isAr ? "الاسم الكامل" : "Full Name"),
-                    _buildTextField(_phoneController, isAr ? "رقم الهاتف" : "Phone", inputType: TextInputType.phone),
-                    const SizedBox(height: 20),
-                    if (!isLoggedIn)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline, color: Colors.blue),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                isAr
-                                    ? "سيتم استخدام البريد الإلكتروني وكلمة المرور لإنشاء حساب جديد لك على تطبيق كريدت فون، أو قم بتسجيل الدخول وأطلب."
-                                    : "Your email and password will be used to create a new account on Credit Phone, or to login then order.",
-                                style: const TextStyle(fontSize: 14, color: Colors.black87),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    _buildTextField(_emailController, isAr ? "البريد الإلكتروني" : "Email", inputType: TextInputType.emailAddress),
-                    _buildTextField(_passwordController, isAr ? "كلمة المرور" : "Password", obscure: true),
-                    const SizedBox(height: 10),
-                    _buildRadioQuestion(isAr ? "هل تقيم في قطر؟" : "Are you resident in Qatar?", _residentInQatar,
-                        (v) => setState(() => _residentInQatar = v), lang),
-                    if (_residentInQatar == "yes")
-                      _buildRadioQuestion(isAr ? "هل لديك شيكات؟" : "Do you have checks?", _hasChecks,
-                          (v) => setState(() => _hasChecks = v), lang),
-                    if (_hasChecks == "no")
-                      _buildRadioQuestion(isAr ? "هل يمكنك استخراج شيكات؟" : "Can you obtain checks?", _canObtainChecks,
-                          (v) => setState(() => _canObtainChecks = v), lang),
-                    _buildTextField(_noteController, isAr ? "ملاحظة" : "Note", maxLines: 3),
-                  ],
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildUserForm(isAr, isLoggedIn),
+              const SizedBox(height: 20),
+              _buildOrderSummary(isAr, cartItems),
+              const SizedBox(height: 20),
+              _buildPriceSummary(isAr),
+              const SizedBox(height: 30),
+              _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                onPressed: _placeOrder,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                ),
+                child: Text(
+                  isAr ? "تأكيد الطلب" : "Confirm Order",
+                  style: const TextStyle(fontSize: 18),
                 ),
               ),
-            ),
-           Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.receipt_long_rounded, color: Color(0xFF1d0fe3)),
-                const SizedBox(width: 8),
-                Text(
-                  isAr ? "تفاصيل الطلب" : "Order Summary",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-            if (!isLoggedIn) ...[
-              infoRow(Icons.person_outline, isAr ? "الاسم الكامل" : "Full Name", _fullNameController.text),
-              infoRow(Icons.phone, isAr ? "رقم الهاتف" : "Phone", _phoneController.text),
-              infoRow(Icons.email_outlined, isAr ? "البريد الإلكتروني" : "Email", _emailController.text),
-              const SizedBox(height: 12),
             ],
-
-            infoRow(
-              Icons.payment_outlined,
-              isAr ? "الخطة" : "Plan",
-              isCustomPlan
-                  ? (isAr ? "مخصصة" : "Custom")
-                  : (isAr ? "افتراضية" : "Standard"),
-            ),
-
-
-            if (_noteController.text.isNotEmpty)
-              infoRow(Icons.notes, isAr ? "ملاحظة" : "Note", _noteController.text),
-
-            const SizedBox(height: 16),
-            Divider(color: Colors.grey.shade300),
-
-            Text(
-              isAr ? "المنتجات:" : "Products:",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            ...Provider.of<CartProvider>(context).items.map((item) {
-              final name = item.product.name;
-              final qty = item.quantity;
-              final plan = item.installmentPlan;
-              final isCustom = plan?.type == 'custom';
-              final priceText = isAr ? "ر.ق" : "QAR";
-
-              final unitPrice = isCustom ? plan!.downPayment : item.product.price;
-              final total = unitPrice * qty;
-
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "${isAr ? "الكمية" : "Qty"}: $qty",
-                          style: const TextStyle(fontSize: 13, color: Colors.black87),
-                        ),
-                        Text(
-                          "$priceText ${total.toStringAsFixed(2)}",
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-            }),
-
-
-
-            const SizedBox(height: 16),
-            Divider(color: Colors.grey.shade300),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isAr ? "المجموع الكلي" : "Total",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                Text(
-                  "${totalPrice.toStringAsFixed(2)} ${isAr ? "ريال قطري" : "Qatari Riyal"}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
-            ),
-
-          ],
+          ),
         ),
       ),
-    ),
+    );
+  }
 
-
-
-    const SizedBox(height: 24),
-            _loading
-                ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1d0fe3),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-              ),
-              label: Text(isAr ? "إرسال الطلب" : "Submit Order", style: const TextStyle(fontSize: 18)),
-              onPressed: _placeOrder,
-            ),
+  Widget _buildUserForm(bool isAr, bool isLoggedIn) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            if (!isLoggedIn) ...[
+              _buildTextField(_fullNameController, isAr ? "الاسم الكامل" : "Full Name"),
+              _buildTextField(_phoneController, isAr ? "رقم الهاتف" : "Phone", inputType: TextInputType.phone),
+              _buildTextField(_emailController, isAr ? "البريد الإلكتروني" : "Email", inputType: TextInputType.emailAddress),
+              _buildTextField(_passwordController, isAr ? "كلمة المرور" : "Password", obscure: true),
+              const SizedBox(height: 12),
+              _buildRadioQuestion(isAr ? "هل تقيم في قطر؟" : "Are you resident in Qatar?", _residentInQatar, (v) => setState(() => _residentInQatar = v), isAr),
+              if (_residentInQatar == "yes")
+                _buildRadioQuestion(isAr ? "هل لديك شيكات؟" : "Do you have checks?", _hasChecks, (v) => setState(() => _hasChecks = v), isAr),
+              if (_hasChecks == "no")
+                _buildRadioQuestion(isAr ? "هل يمكنك استخراج شيكات؟" : "Can you obtain checks?", _canObtainChecks, (v) => setState(() => _canObtainChecks = v), isAr),
+            ],
+            _buildTextField(_noteController, isAr ? "ملاحظة (اختياري)" : "Note (optional)", maxLines: 3),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label,
-      {TextInputType inputType = TextInputType.text, bool obscure = false, int maxLines = 1}) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String label, {
+        TextInputType inputType = TextInputType.text,
+        bool obscure = false,
+        int maxLines = 1,
+      }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
         controller: controller,
         keyboardType: inputType,
         obscureText: obscure,
         maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: primaryColor, width: 2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: primaryColor.withOpacity(0.4)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         ),
       ),
     );
   }
 
-  Widget _buildRadioQuestion(String question, String? value, Function(String?) onChanged, String lang) {
-    final isAr = lang == 'ar';
-    final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-
-    isCustomPlan = arguments?['isCustomPlan'] ?? false;
-    downPaymentController.text = (arguments?['downPayment']?.toString() ?? '');
-
+  Widget _buildRadioQuestion(String question, String? value, Function(String?) onChanged, bool isAr) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(padding: const EdgeInsets.only(top: 10, bottom: 5), child: Text(question, style: const TextStyle(fontWeight: FontWeight.bold))),
-        Row(
-          children: ["yes", "no"].map((option) {
-            return Expanded(
+        Text(question, style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 10,
+          children: ['yes', 'no'].map((option) {
+            return SizedBox(
+              width: 150,
               child: RadioListTile(
-                title: Text(option == "yes" ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No")),
+                activeColor: primaryColor,
+                title: Text(option == 'yes' ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No")),
                 value: option,
                 groupValue: value,
                 onChanged: onChanged,
+                dense: true,
+                contentPadding: EdgeInsets.zero,
               ),
             );
           }).toList(),
         ),
+        const SizedBox(height: 8),
       ],
     );
   }
 
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  Widget _buildOrderSummary(bool isAr, List cartItems) {
+    return Card(
+      color: Colors.white,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isAr ? "المنتجات" : "Products",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+            ...cartItems.map((item) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.product.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${isAr ? 'الكمية' : 'Quantity'}: ${item.quantity}",
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  const Divider(height: 20, thickness: 1),
+                ],
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildPriceSummary(bool isAr) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: secondaryColor.withOpacity(0.2),
+        border: Border.all(color: secondaryColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _summaryRowText(isAr ? "نوع الخطة" : "Plan Type", widget.isCustomPlan ? (isAr ? "مخصصة" : "Custom") : (isAr ? "افتراضية" : "Default")),
+          _summaryRow(isAr ? "الدفعة الأولى" : "Down Payment", widget.downPayment),
+          _summaryRow(isAr ? "المبلغ المتبقي" : "Remaining", widget.remainingAmount),
+          _summaryRow(isAr ? "عدد الأقساط" : "Installments", widget.numberOfInstallments.toDouble()),
+          _summaryRow(isAr ? "قيمة كل قسط" : "Monthly Payment", widget.monthlyPayment),
+          const Divider(),
+          _summaryRow(isAr ? "الإجمالي الكلي" : "Total", widget.totalPrice),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRowText(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [Text(title), Text(value)],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String title, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title),
+          Text("${formatNumber(value)} ر.ق", style: const TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
   }
 
   Future<void> _placeOrder() async {
-    final isLoggedIn = Provider.of<UserProvider>(context, listen: false).isLoggedIn;
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final lang = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
-    final isAr = lang == 'ar';
+    final isAr = context.isAr;
 
-    if (!_isValidEmail(_emailController.text.trim())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isAr ? 'الرجاء إدخال بريد إلكتروني صحيح' : 'Please enter a valid email address'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    final isLoggedIn = userProvider.isLoggedIn;
+    final customerName = _fullNameController.text.trim();
+    final customerEmail = _emailController.text.trim();
+    final customerPhone = _phoneController.text.trim();
 
-    bool? isNewCustomer;
-    if (!isLoggedIn) {
-      isNewCustomer = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text(isAr ? 'هل أنت عميل جديد؟' : 'Are you a new customer?'),
-            actions: [
-              TextButton(
-                child: Text(isAr ? 'لا' : 'No'),
-                onPressed: () => Navigator.of(context).pop(false),
-              ),
-              TextButton(
-                child: Text(isAr ? 'نعم' : 'Yes'),
-                onPressed: () => Navigator.of(context).pop(true),
-              ),
-            ],
-          );
-        },
-      );
-    }
+    final cartItems = cartProvider.items;
 
-    if (isNewCustomer == null && !isLoggedIn) return;
-
-    try {
-      setState(() => _loading = true);
-
-      final items = cartProvider.items;
-      final plan = items.first.installmentPlan;
-      final lineItems = items.map((item) => {
+    final lineItems = cartItems.map((item) {
+      return {
         'product_id': item.product.id,
         'quantity': item.quantity,
-      }).toList();
+      };
+    }).toList();
 
-      final buffer = StringBuffer();
+    setState(() => _loading = true);
 
-      // Note
-      if (_noteController.text.trim().isNotEmpty) {
-        buffer.writeln(isAr ? 'ملاحظة: ${_noteController.text.trim()}' : 'Note: ${_noteController.text.trim()}');
-      }
-
-      // Survey answers
-      buffer.writeln(isAr ? '\nإجابات الأسئلة:' : '\nSurvey Answers:');
-      buffer.writeln('${isAr ? ' - هل تقيم في قطر؟' : ' - Resident in Qatar?'} ${_residentInQatar ?? (isAr ? 'غير مجاب' : 'Not answered')}');
-      if (_residentInQatar == 'yes') {
-        buffer.writeln('${isAr ? ' - هل لديك شيكات؟' : ' - Has checks?'} ${_hasChecks ?? (isAr ? 'غير مجاب' : 'Not answered')}');
-        if (_hasChecks == 'no') {
-          buffer.writeln('${isAr ? ' - هل يمكنك استخراج شيكات؟' : ' - Can obtain checks?'} ${_canObtainChecks ?? (isAr ? 'غير مجاب' : 'Not answered')}');
-        }
-      }
-
-      // Installment plan
-      buffer.writeln(isAr ? '\nتفاصيل خطة التقسيط:' : '\nInstallment Plan Details:');
-      buffer.writeln('${isAr ? ' - نوع الخطة: ' : ' - Plan Type: '}${plan?.type ?? (isAr ? 'افتراضية' : 'Standard')}');
-      if (plan?.type == 'custom') {
-        buffer.writeln('${isAr ? ' - الدفعة الأولى: ' : ' - Down Payment: '}${plan?.downPayment} QAR');
-        buffer.writeln('${isAr ? ' - المبلغ المتبقي: ' : ' - Remaining Amount: '}${plan?.remainingAmount} QAR');
-        buffer.writeln('${isAr ? ' - القسط الشهري: ' : ' - Monthly Payment: '}${plan?.monthlyPayment} QAR × 4');
-      }
-
-      buffer.writeln('${isAr ? ' - حالة العميل: ' : ' - Customer Status: '}${isNewCustomer ?? (isLoggedIn ? (isAr ? 'عميل حالي' : 'Existing Customer') : (isAr ? 'عميل جديد' : 'New Customer'))}');
-
-      final result = await _apiService.createOrder(
-        customerName: _fullNameController.text.trim(),
-        customerEmail: _emailController.text.trim(),
-        customerPhone: _phoneController.text.trim(),
+    try {
+      await _apiService.createOrder(
+        customerName: customerName,
+        customerEmail: customerEmail,
+        customerPhone: customerPhone,
         lineItems: lineItems,
-        installmentType: plan?.type ?? 'standard',
-        isNewCustomer: isNewCustomer ?? isLoggedIn,
-        customerNote: buffer.toString(),
+        installmentType: widget.isCustomPlan ? "custom" : "default",
+        isNewCustomer: !isLoggedIn,
+        customerNote: _noteController.text,
+        customInstallment: widget.isCustomPlan
+            ? {
+          'downPayment': widget.downPayment,
+          'remainingAmount': widget.remainingAmount,
+          'monthlyPayment': widget.monthlyPayment,
+          'numberOfInstallments': widget.numberOfInstallments,
+        }
+            : null,
       );
 
-      cartProvider.clearCart();
-
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 64),
-              const SizedBox(height: 16),
-              Text(
-                isAr ? 'تم تقديم طلبك بنجاح' : 'Order Placed Successfully',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isAr ? 'سنتواصل معك خلال الساعات القليلة القادمة' : "We'll contact you within the next few hours",
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pushNamedAndRemoveUntil('/orders', (route) => route.settings.name == '/main');
-              },
-              child: Text(isAr ? 'حسناً' : 'OK'),
-            ),
-          ],
-        ),
-      );
-
+      // إظهار رسالة نجاح
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isAr ? 'تم استلام طلبك وهو قيد المراجعة. سنتواصل معك قريباً' : 'Your order has been received and is under review. We will contact you soon.'),
+          content: Text(isAr ? "تم إرسال الطلب بنجاح!" : "Order submitted successfully!"),
           backgroundColor: Colors.green,
         ),
       );
+
+      // تفريغ السلة
+      cartProvider.clearCart();
+
+      // الانتقال إلى صفحة الطلبات
+      Navigator.of(context).pushNamedAndRemoveUntil('/orders', (route) => false);
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isAr ? 'فشل إرسال الطلب: $e' : 'Failed to place order: $e'),
+          content: Text(isAr ? "فشل في إرسال الطلب. حاول مرة أخرى." : "Failed to submit order. Please try again."),
           backgroundColor: Colors.red,
         ),
       );
     } finally {
       setState(() => _loading = false);
     }
-  }
-  Widget infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Colors.grey.shade600),
-          const SizedBox(width: 8),
-          Text("$label: ", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-          Flexible(child: Text(value, style: const TextStyle(fontSize: 14))),
-        ],
-      ),
-    );
   }
 
 }

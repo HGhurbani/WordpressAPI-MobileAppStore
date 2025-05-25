@@ -18,6 +18,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('user_id', newUser.id ?? 0);
     await prefs.setString('user_token', newUser.token);
     await prefs.setString('user_name', newUser.username);
     await prefs.setString('user_email', newUser.email);
@@ -30,9 +31,12 @@ class UserProvider extends ChangeNotifier {
     final username = prefs.getString('user_name');
     final email = prefs.getString('user_email');
     final phone = prefs.getString('user_phone');
+    final userId = prefs.getInt('user_id');
+
 
     if (token != null && username != null && email != null) {
       setUser(User(
+        id: userId,
         token: token,
         username: username,
         email: email,
@@ -70,4 +74,20 @@ class UserProvider extends ChangeNotifier {
     _user = null;
     notifyListeners();
   }
+
+  void updateUser({
+    String? username,
+    String? email,
+    String? phone,
+  }) {
+    if (_user != null) {
+      _user = _user!.copyWith(
+        username: username ?? _user!.username,
+        email: email ?? _user!.email,
+        phone: phone ?? _user!.phone,
+      );
+      notifyListeners();
+    }
+  }
+
 }

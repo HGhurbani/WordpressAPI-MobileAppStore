@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/locale_provider.dart';
 import '../providers/user_provider.dart';
+import '../services/api_service.dart';
 import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -54,25 +55,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final isLoggedIn = userProvider.isLoggedIn;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FA),
       appBar: AppBar(
-        title: Text(isAr ? 'الإعدادات / Settings' : 'الإعدادات / Settings'),
-        backgroundColor: const Color(0xff1d0fe3),
+        title: Text(isAr ? 'الإعدادات / Settings' : 'Settings / الإعدادات'),
+        backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
         centerTitle: true,
-        elevation: 0,
+        elevation: 2,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Text(
+            isAr ? 'عام' : 'General',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1A2543)),
+          ),
+          const SizedBox(height: 10),
+
           _sectionCard(
             icon: Icons.language,
-            title: isAr ? ' اللغة / Language' : ' اللغة / Language',
+            title: isAr ? 'Language / اللغة' : 'Language / اللغة',
             trailing: DropdownButton<String>(
               value: languageCode,
               underline: const SizedBox(),
               onChanged: (value) {
-                if (value != null) localeProvider.setLocale(Locale(value));
+                if (value != null) {
+                  localeProvider.setLocale(Locale(value));
+
+                  // إعادة توجيه المستخدم للصفحة الرئيسية
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+                  });
+                }
               },
+
               items: const [
                 DropdownMenuItem(value: 'ar', child: Text('العربية')),
                 DropdownMenuItem(value: 'en', child: Text('English')),
@@ -80,8 +96,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 10),
+
           _sectionCard(
-            icon: Icons.notifications,
+            icon: Icons.notifications_active_outlined,
             title: isAr ? 'الإشعارات' : 'Notifications',
             trailing: Switch(
               value: notificationsEnabled,
@@ -89,132 +106,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 await _notificationService.setNotificationsEnabled(val);
                 setState(() => notificationsEnabled = val);
               },
-              activeColor: const Color(0xff1d0fe3),
-            ),
-          ),
-          const SizedBox(height: 20),
+              activeColor: const Color(0xFF6FE0DA), // اللون عند التشغيل
+              inactiveTrackColor: Colors.grey.shade400, // لون الخلفية عند الإيقاف
+              inactiveThumbColor: Colors.grey.shade700, // لون الزر عند الإيقاف
+            )
 
+          ),
+
+          const SizedBox(height: 30),
           if (isLoggedIn) ...[
-            Text(isAr ? "المعلومات الشخصية" : "Personal Info",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(
+              isAr ? "معلومات الحساب" : "Account Info",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1A2543)),
+            ),
             const SizedBox(height: 10),
             _buildInputField(
               controller: _nameController,
-              hint: isAr ? 'الاسم' : 'Name',
+              hint: isAr ? 'الاسم الكامل' : 'Full Name',
               icon: Icons.person,
             ),
             const SizedBox(height: 10),
             _buildInputField(
               controller: _emailController,
               hint: isAr ? 'البريد الإلكتروني' : 'Email',
-              icon: Icons.email,
+              icon: Icons.email_outlined,
             ),
             const SizedBox(height: 10),
             _buildInputField(
               controller: _phoneController,
-              hint: isAr ? 'رقم الهاتف' : 'Phone',
-              icon: Icons.phone,
+              hint: isAr ? 'رقم الجوال' : 'Phone Number',
+              icon: Icons.phone_android_outlined,
             ),
             const SizedBox(height: 10),
             _buildInputField(
               controller: _passwordController,
-              hint: isAr ? 'كلمة المرور' : 'Password',
-              icon: Icons.lock,
+              hint: isAr ? 'كلمة المرور الجديدة' : 'New Password',
+              icon: Icons.lock_outline,
               obscure: true,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 25),
             ElevatedButton.icon(
+              icon: const Icon(Icons.save_alt, color: Colors.white),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xff1d0fe3),
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                backgroundColor: const Color(0xFF1A2543),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
               ),
-              label: Text(isAr ? 'حفظ التعديلات' : 'Save Changes', style: const TextStyle(color: Colors.white)),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(isAr ? 'تم حفظ البيانات' : 'Changes saved'),
-                ));
+              label: Text(
+                isAr ? 'حفظ التعديلات' : 'Save Changes',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              onPressed: () async {
+                final name = _nameController.text.trim();
+                final email = _emailController.text.trim();
+                final phone = _phoneController.text.trim();
+                final password = _passwordController.text.trim();
+
+                final success = await ApiService().updateUserInfo(
+                  name: name,
+                  email: email,
+                  phone: phone,
+                  password: password.isNotEmpty ? password : null,
+                );
+
+                if (success) {
+                  // تحديث بيانات المستخدم في UserProvider
+                  userProvider.updateUser(
+                    username: name,
+                    email: email,
+                    phone: phone,
+                  );
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    backgroundColor: const Color(0xFF6FE0DA),
+                    content: Text(isAr ? 'تم حفظ البيانات بنجاح' : 'Changes saved successfully'),
+                  ));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    backgroundColor: Colors.red,
+                    content: Text(isAr ? 'فشل في حفظ البيانات' : 'Failed to save changes'),
+                  ));
+                }
               },
+
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 30),
             ListTile(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              tileColor: Colors.red.shade50,
               leading: const Icon(Icons.logout, color: Colors.red),
               title: Text(
                 isAr ? 'تسجيل الخروج' : 'Logout',
-                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
               ),
               onTap: () {
                 userProvider.logout();
                 Navigator.pushReplacementNamed(context, '/login');
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
           ],
+
+          Text(
+            isAr ? 'الدعم والمساعدة' : 'Support & Help',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1A2543)),
+          ),
+          const SizedBox(height: 10),
           ListTile(
-            leading: const Icon(Icons.support_agent, color: Color(0xff1d0fe3)),
-            title: Text(isAr ? 'الاستفسارات العامة والشكاوى' : 'General Inquiries & Complaints'),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  title: Text(isAr ? 'وسائل التواصل' : 'Contact Methods'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.phone, color: Colors.green),
-                        title: const Text("50105685"),
-                        onTap: () => _openWhatsApp("+97450105685"),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.phone, color: Colors.green),
-                        title: const Text("77704313"),
-                        onTap: () => _openWhatsApp("+97477704313"),
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.email, color: Colors.blue),
-                        title: const Text("support@creditphoneqatar.com"),
-                        onTap: () => _launchEmail("support@creditphoneqatar.com"),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      child: Text(isAr ? 'إغلاق' : 'Close'),
-                      onPressed: () => Navigator.pop(context),
-                    )
-                  ],
-                ),
-              );
-            },
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            tileColor: Colors.grey.shade100,
+            leading: const Icon(Icons.support_agent, color: Color(0xFF1A2543)),
+            title: Text(isAr ? 'الاستفسارات والشكاوى' : 'Inquiries & Complaints'),
+            onTap: () => _showContactDialog(isAr),
           ),
         ],
       ),
     );
   }
-  void _openWhatsApp(String phoneNumber) async {
-    final url = "https://wa.me/$phoneNumber";
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    }
-  }
-
-  void _launchEmail(String email) async {
-    final uri = Uri(scheme: 'mailto', path: email);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
-  }
 
   Widget _sectionCard({required IconData icon, required String title, required Widget trailing}) {
     return Card(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 2,
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xff1d0fe3)),
+        leading: Icon(icon, color: const Color(0xFF1A2543)),
         title: Text(title),
         trailing: trailing,
       ),
@@ -231,12 +247,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
       controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: const Color(0xFF6FE0DA)),
         hintText: hint,
-        prefixIcon: Icon(icon, color: const Color(0xff1d0fe3)),
         filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
+  }
+
+  void _showContactDialog(bool isAr) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(isAr ? 'وسائل التواصل' : 'Contact Methods'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.phone, color: Colors.green),
+              title: const Text("50105685"),
+              onTap: () => _openWhatsApp("+97450105685"),
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone, color: Colors.green),
+              title: const Text("77704313"),
+              onTap: () => _openWhatsApp("+97477704313"),
+            ),
+            ListTile(
+              leading: const Icon(Icons.email_outlined, color: Colors.blue),
+              title: const Text("support@creditphoneqatar.com"),
+              onTap: () => _launchEmail("support@creditphoneqatar.com"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: Text(isAr ? 'إغلاق' : 'Close'),
+            onPressed: () => Navigator.pop(context),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _openWhatsApp(String phoneNumber) async {
+    final url = "https://wa.me/$phoneNumber";
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _launchEmail(String email) async {
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
   }
 }

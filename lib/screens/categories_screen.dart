@@ -31,7 +31,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         title: Text(isArabic ? 'الأصناف' : 'Categories'),
         elevation: 0,
         centerTitle: true,
-        backgroundColor: const Color(0xFF1d0fe3),
+        backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
       ),
       body: Padding(

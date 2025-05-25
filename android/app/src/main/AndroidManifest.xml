@@ -5,7 +5,7 @@
 
     <application
 
-        android:label="creditphoneqa"
+        android:label="CreditPhone"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

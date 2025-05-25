@@ -3,6 +3,7 @@ import 'package:creditphoneqa/screens/notifications_screen.dart';
 import 'package:flutter/material.dart';
 import 'screens/about_screen.dart';
 import 'screens/faq_screen.dart';
+import 'screens/installment_options_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart'; // تأكد من وجود هذا الملف
@@ -29,7 +30,7 @@ class AppRoutes {
     // لاحظ أن صفحة تفاصيل المنتج تحتاج إلى معلمة، فيُفضل تمريرها باستخدام Navigator مع arguments
     // '/product_detail': (context) => ProductDetailScreen(productId: 0),
     '/cart': (context) => CartScreen(),
-    '/checkout': (context) => CheckoutScreen(),
+    // '/checkout': (context) => CheckoutScreen(),
     '/profile': (context) => ProfileScreen(),
     '/orders': (context) => OrdersScreen(),
     '/settings': (context) => SettingsScreen(),
@@ -39,6 +40,8 @@ class AppRoutes {
     '/categories': (context) => const CategoriesScreen(),
     '/about': (context) => const AboutUsScreen(),
     '/faq': (context) => const FaqScreen(),
+    '/installment-options': (context) => const InstallmentOptionsScreen(),
+
 
   };
 }

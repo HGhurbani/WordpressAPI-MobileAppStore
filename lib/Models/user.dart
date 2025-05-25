@@ -1,5 +1,3 @@
-// lib/models/user.dart
-
 class User {
   final int? id;
   final String token;
@@ -21,7 +19,23 @@ class User {
       token: json["token"] ?? "",
       username: json["user_display_name"] ?? json["first_name"] ?? "",
       email: json["user_email"] ?? json["email"] ?? "",
-      phone: json["phone"] ?? json["billing"]?["phone"] ?? "", // ✅ هذا السطر هو المفتاح
+      phone: json["phone"] ?? json["billing"]?["phone"] ?? "",
+    );
+  }
+
+  User copyWith({
+    int? id,
+    String? token,
+    String? username,
+    String? email,
+    String? phone,
+  }) {
+    return User(
+      id: id ?? this.id,
+      token: token ?? this.token,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
     );
   }
 

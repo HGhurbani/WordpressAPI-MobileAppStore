@@ -48,7 +48,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isAr ? "نسيت كلمة المرور" : "Forgot Password"),
-        backgroundColor: const Color(0xff1d0fe3),
+        backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
       ),
       body: Padding(
@@ -77,7 +77,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 : ElevatedButton(
               onPressed: _resetPassword,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xff1d0fe3),
+                backgroundColor: const Color(0xFF1A2543),
                 minimumSize: const Size(double.infinity, 50),
               ),
               child: Text(

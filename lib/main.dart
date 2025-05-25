@@ -3,50 +3,26 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'routes.dart';
 import 'providers/cart_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/locale_provider.dart';
-import 'package:firebase_core/firebase_core.dart'; // Import Firebase
-
-/// تعريف اللون الأساسي مع درجاته
-const MaterialColor customPrimarySwatch = MaterialColor(
-  0xFF1D0FE3,
-  <int, Color>{
-    50: Color(0xFFEAE6FE),
-    100: Color(0xFFCBC2FE),
-    200: Color(0xFFA898FD),
-    300: Color(0xFF8570FD),
-    400: Color(0xFF6A53FD),
-    500: Color(0xFF1D0FE3),
-    600: Color(0xFF190DCB),
-    700: Color(0xFF150BB3),
-    800: Color(0xFF11099B),
-    900: Color(0xFF0A0676),
-  },
-);
-
-class NotificationService {
-  Future<void> initialize() async {
-    // Placeholder:  Replace with actual Firebase Messaging initialization
-    print('Notification service initialized (placeholder)');
-  }
-
-  // Add methods to send notifications here.  This requires FCM integration.
-}
-
+import 'package:firebase_core/firebase_core.dart';
+import 'theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  await Firebase.initializeApp();
   await NotificationService().initialize();
-  final notificationService = NotificationService();
-  await notificationService.initialize();
 
   final userProvider = UserProvider();
-  await userProvider.loadUserFromPrefs(); // تحميل المستخدم من SharedPreferences
+  await userProvider.loadUserFromPrefs();
+
+  final prefs = await SharedPreferences.getInstance();
+  final lastRoute = prefs.getString('last_route') ?? '/';
 
   runApp(
     MultiProvider(
@@ -55,13 +31,81 @@ void main() async {
         ChangeNotifierProvider<UserProvider>.value(value: userProvider),
         ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
       ],
-      child: const MyApp(),
+      child: MyApp(initialRoute: lastRoute),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+/// Route Observer لحفظ آخر صفحة تمت زيارتها
+class RouteObserverService extends RouteObserver<PageRoute<dynamic>> {
+  void _saveLastRoute(Route<dynamic>? route) {
+    if (route is PageRoute) {
+      final routeName = route.settings.name;
+      if (routeName != null) {
+        SharedPreferences.getInstance().then((prefs) {
+          prefs.setString('last_route', routeName);
+        });
+      }
+    }
+  }
+
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    _saveLastRoute(route);
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route route, Route? previousRoute) {
+    _saveLastRoute(previousRoute);
+    super.didPop(route, previousRoute);
+  }
+}
+
+final RouteObserverService routeObserver = RouteObserverService();
+
+class MyApp extends StatefulWidget {
+  final String initialRoute;
+
+  const MyApp({Key? key, required this.initialRoute}) : super(key: key);
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final NotificationService _notificationService = NotificationService();
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+      final user = userProvider.user;
+
+      if (user != null && user.email != null) {
+        await _notificationService.checkOrderStatusUpdates(
+          userEmail: user.email!,
+          langCode: localeProvider.locale.languageCode,
+        );
+      }
+    });
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+      final user = userProvider.user;
+
+      if (user != null && user.email != null) {
+        await _notificationService.checkOrderStatusUpdates(
+          userEmail: user.email!,
+          langCode: localeProvider.locale.languageCode,
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,20 +124,9 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          theme: ThemeData(
-            fontFamily: 'Tajawal',
-            scaffoldBackgroundColor: Colors.white,
-            primarySwatch: customPrimarySwatch,
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xff1d0fe3),
-              ),
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xff1d0fe3),
-            ),
-          ),
-          initialRoute: '/',
+          theme: AppTheme.lightTheme,
+          initialRoute: widget.initialRoute,
+          navigatorObservers: [routeObserver],
           routes: AppRoutes.routes,
         );
       },

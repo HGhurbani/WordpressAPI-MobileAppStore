@@ -68,6 +68,12 @@ class CartProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+  void removeItem(String productId) {
+    _items.removeWhere((item) => item.product.id.toString() == productId);
+    notifyListeners();
+  }
+
+
 }
 
 

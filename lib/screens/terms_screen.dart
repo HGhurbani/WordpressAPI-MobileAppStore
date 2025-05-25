@@ -14,7 +14,8 @@ class TermsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(isAr ? 'شروط الاستخدام' : 'Terms of Use'),
-        backgroundColor: const Color(0xff1d0fe3),
+        backgroundColor: const Color(0xFF1A2543),
+        centerTitle: true,
         foregroundColor: Colors.white,
       ),
       body: Padding(

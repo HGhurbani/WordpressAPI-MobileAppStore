@@ -7,7 +7,9 @@ import '../providers/locale_provider.dart';
 
 class ProductListScreen extends StatefulWidget {
   final int? categoryId;
-  const ProductListScreen({Key? key, this.categoryId}) : super(key: key);
+  final String? sortBy; // ← أضفنا هذا السطر لدعم الفرز
+
+  const ProductListScreen({Key? key, this.categoryId, this.sortBy}) : super(key: key);
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
@@ -52,9 +54,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
       perPage: _perPage,
       page: _page,
     );
+
+    // تطبيق الفرز إذا طلب
+    final sorted = _applySorting(products);
+
     setState(() {
-      _allProducts = products;
-      _filteredProducts = products;
+      _allProducts = sorted;
+      _filteredProducts = _applySearch(_searchController.text);
       _isLoading = false;
       _hasMore = products.length == _perPage;
     });
@@ -69,9 +75,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
       perPage: _perPage,
       page: _page,
     );
+
     if (more.isNotEmpty) {
+      final sorted = _applySorting(more);
+
       setState(() {
-        _allProducts.addAll(more);
+        _allProducts.addAll(sorted);
         _filteredProducts = _applySearch(_searchController.text);
         _hasMore = more.length == _perPage;
       });
@@ -79,6 +88,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
       setState(() => _hasMore = false);
     }
     _isLoadingMore = false;
+  }
+
+  List<Product> _applySorting(List<Product> products) {
+    if (widget.sortBy == 'price_asc') {
+      products.sort((a, b) => a.price.compareTo(b.price));
+    }
+    // يمكنك لاحقًا إضافة دعم لمزيد من الفرز مثل: 'price_desc' أو 'name_asc'
+    return products;
   }
 
   List<Product> _applySearch(String query) {
@@ -101,7 +118,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       appBar: AppBar(
         title: Text(appBarTitle),
         centerTitle: true,
-        backgroundColor: const Color(0xFF1d0fe3),
+        backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -118,7 +135,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 filled: true,
                 fillColor: Colors.grey[200],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(50), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(50),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),

@@ -10,7 +10,7 @@ class AboutUsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(isAr ? 'نبذة عنا' : 'About Us'),
         centerTitle: true,
-        backgroundColor: const Color(0xff180cb5),
+        backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
@@ -44,7 +44,6 @@ class AboutUsScreen extends StatelessWidget {
 
             _sectionTitle(isAr ? "لماذا كريدت فون؟" : "Why Credit Phone?"),
             _bulletList([
-              isAr ? "لا نطلب كفيل أو شيكات" : "No guarantor or cheques required",
               isAr ? "موافقة خلال دقائق" : "Approval within minutes",
               isAr ? "تسليم فوري أو في نفس اليوم" : "Instant or same-day delivery",
               isAr ? "دعم كامل قبل وبعد البيع" : "Full support before & after sale",
