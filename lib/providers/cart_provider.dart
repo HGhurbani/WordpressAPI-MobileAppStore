@@ -3,9 +3,12 @@ import '../models/product.dart';
 import '../Models/installment_plan.dart';
 
 class CartProvider extends ChangeNotifier {
-  final List<_CartItem> _items = [];
+  // قم بتغيير _CartItem إلى CartItem هنا
+  final List<CartItem> _items = [];
 
-  List<_CartItem> get items => _items;
+  // ... بقية الكود
+
+  List<CartItem> get items => _items; // وهنا أيضاً
 
   double get totalAmount {
     double total = 0.0;
@@ -20,19 +23,18 @@ class CartProvider extends ChangeNotifier {
     return total;
   }
 
-
   void addToCart(Product product, {InstallmentPlan? plan}) {
     final index = _items.indexWhere((element) => element.product.id == product.id);
     if (index >= 0) {
       _items[index].quantity++;
     } else {
+      // وهنا أيضاً
       _items.add(
-        _CartItem(product: product, quantity: 1, installmentPlan: plan),
+        CartItem(product: product, quantity: 1, installmentPlan: plan),
       );
     }
     notifyListeners();
   }
-
 
   int getQuantity(Product product) {
     final index = _items.indexWhere((element) => element.product.id == product.id);
@@ -72,19 +74,16 @@ class CartProvider extends ChangeNotifier {
     _items.removeWhere((item) => item.product.id.toString() == productId);
     notifyListeners();
   }
-
-
 }
 
-
-
-class _CartItem {
+// قم بتغيير اسم الكلاس من _CartItem إلى CartItem
+class CartItem {
   final Product product;
   int quantity;
   InstallmentPlan? installmentPlan;
 
-  _CartItem({
-    required this.product, 
+  CartItem({
+    required this.product,
     this.quantity = 1,
     this.installmentPlan,
   });
