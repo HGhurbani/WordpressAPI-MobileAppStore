@@ -338,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           Expanded(
             child: _buildStatCard(
               icon: Icons.payments_rounded,
-              title: currentLanguage == "ar" ? "عروض التقسيط" : "Installment Offers",
+              title: currentLanguage == "ar" ? "خصص خطتك" : "Customize Your Plan",
               subtitle: currentLanguage == "ar"
                   ? "خصص دفعتك الأولى كما يناسبك"
                   : "Customize your first payment as you wish",
