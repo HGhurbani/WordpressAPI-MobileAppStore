@@ -76,7 +76,7 @@ class AddedToCartScreen extends StatelessWidget {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 5,
                 ),
@@ -95,7 +95,7 @@ class AddedToCartScreen extends StatelessWidget {
                   side: const BorderSide(color: Color(0xFF1A2543), width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 onPressed: () {

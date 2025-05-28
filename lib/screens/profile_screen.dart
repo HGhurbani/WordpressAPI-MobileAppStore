@@ -119,7 +119,7 @@ class ProfileScreen extends StatelessWidget {
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 60), // حجم أكبر للزر
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30), // حواف دائرية للزر
+                        borderRadius: BorderRadius.circular(16), // حواف دائرية للزر
                       ),
                       elevation: 0, // ظل أكبر للزر
                       shadowColor: _primaryColor.withOpacity(0.4), // لون ظل مناسب
@@ -144,7 +144,7 @@ class ProfileScreen extends StatelessWidget {
                       foregroundColor: _primaryColor, // لون النص المناسب
                       minimumSize: const Size(double.infinity, 60), // حجم أكبر للزر
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 0, // ظل أكبر
                       shadowColor: _accentColor.withOpacity(0.4), // لون ظل مناسب
@@ -284,7 +284,7 @@ class ProfileScreen extends StatelessWidget {
             backgroundColor: _primaryColor, // اللون الأساسي للهوية
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 18), // حشوة أكبر
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), // حواف دائرية أكثر
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // حواف دائرية أكثر
             elevation: 0, // ظل أكبر
             shadowColor: _primaryColor.withOpacity(0.3),
           ),
@@ -305,7 +305,7 @@ class ProfileScreen extends StatelessWidget {
             foregroundColor: Colors.red.shade600, // لون أحمر أغمق للزر
             side: BorderSide(color: Colors.red.shade400, width: 1.5), // حدود أسمك
             padding: const EdgeInsets.symmetric(vertical: 18), // حشوة أكبر
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), // حواف دائرية أكثر
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // حواف دائرية أكثر
             elevation: 2, // ظل خفيف
           ),
           icon: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 24), // أيقونة محدثة وأكبر

@@ -174,7 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     backgroundColor: const Color(0xFF1A2543),
                     minimumSize: const Size(0, 50),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: Text(

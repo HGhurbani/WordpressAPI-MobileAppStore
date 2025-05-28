@@ -249,7 +249,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A2543),
                 padding: const EdgeInsets.symmetric(vertical: 18), // حشوة أكبر للزر
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), // حواف دائرية أكثر للزر
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // حواف دائرية أكثر للزر
                 elevation: 0, // ظل أكبر للزر
               ),
               label: Text(

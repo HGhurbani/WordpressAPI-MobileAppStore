@@ -137,7 +137,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 backgroundColor: primaryColor,
                 minimumSize: const Size(double.infinity, 55), // Slightly taller button
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30), // Match input field border radius
+                  borderRadius: BorderRadius.circular(16), // Match input field border radius
                 ),
                 elevation: 5, // Add a subtle shadow
               ),

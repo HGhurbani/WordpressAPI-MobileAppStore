@@ -112,7 +112,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     textStyle: const TextStyle(fontSize: 18, color: Colors.white),
                   ),
                   child: Text(

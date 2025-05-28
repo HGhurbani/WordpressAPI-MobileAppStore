@@ -250,7 +250,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     backgroundColor: const Color(0xFF1A2543),
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 6,
                     shadowColor: Colors.black.withOpacity(0.2),
@@ -275,7 +275,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 height: 60,
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A2543),
-                  borderRadius: BorderRadius.circular(50),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
@@ -319,7 +319,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
                             color: const Color(0xFF6FE0DA),
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,

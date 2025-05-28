@@ -136,7 +136,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 filled: true,
                 fillColor: Colors.grey[200],
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(50),
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
               ),

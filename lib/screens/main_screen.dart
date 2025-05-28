@@ -571,7 +571,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -581,11 +581,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white, // لون خلفية شريط التنقل
-            borderRadius: BorderRadius.circular(50),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: Colors.grey.withOpacity(0.1), // حدود خفيفة
               width: 1,

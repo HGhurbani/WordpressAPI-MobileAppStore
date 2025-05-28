@@ -317,7 +317,7 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     minimumSize: const Size.fromHeight(60), // زر أكبر
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0, // ظل أكبر للزر
                     shadowColor: primaryColor.withOpacity(0.5),
                   ),

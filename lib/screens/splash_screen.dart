@@ -409,7 +409,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF1A2543),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: Color(0xFF6FE0DA), width: 2),
           ),
           elevation: 0,
@@ -569,7 +569,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
             width: double.infinity,
             height: 56,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
                 colors: [Color(0xFF1A2543), Color(0xFF2A3B5C)],
                 begin: Alignment.centerLeft,

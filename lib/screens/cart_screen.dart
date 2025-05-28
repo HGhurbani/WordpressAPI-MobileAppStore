@@ -143,7 +143,7 @@ class CartScreen extends StatelessWidget {
                 foregroundColor: const Color(0xFF1A2543),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 elevation: 0,
               ),
@@ -180,7 +180,7 @@ class CartScreen extends StatelessWidget {
           backgroundColor: const Color(0xFF1A2543),
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 6,
           shadowColor: Colors.black.withOpacity(0.2),
         ),

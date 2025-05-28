@@ -161,7 +161,7 @@ class ProductCard extends StatelessWidget {
                         backgroundColor: const Color(0xFF1A2543),
                         foregroundColor: Colors.white, // Text color
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25), // Fully rounded button
+                          borderRadius: BorderRadius.circular(8), // Fully rounded button
                         ),
                         elevation: 2, // Slight elevation for the button
                         padding: EdgeInsets.zero, // Remove default padding
@@ -202,7 +202,7 @@ class ProductCard extends StatelessWidget {
                     height: 40, // Fixed height
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A2543),
-                      borderRadius: BorderRadius.circular(25), // Fully rounded
+                      borderRadius: BorderRadius.circular(8), // Fully rounded
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
