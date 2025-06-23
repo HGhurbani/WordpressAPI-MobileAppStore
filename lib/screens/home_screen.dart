@@ -295,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   ),
                 Text(
                   currentLanguage == "ar"
-                      ? "اكتشف أحد المنتجات في كريدت فون بالتقسيط"
+                      ? "اكتشف أحدث المنتجات في كريدت فون بالتقسيط"
                       : "Discover one of the products at Credit Phone with installment",
                   style: TextStyle(
                     fontSize: 12,

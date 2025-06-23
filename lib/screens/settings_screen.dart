@@ -179,8 +179,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }
                 },
                 items: [
-                  DropdownMenuItem(value: 'ar', child: Text(isAr ? 'العربية' : 'Arabic', style: const TextStyle(color: Color(0xFF1A2543)))),
-                  DropdownMenuItem(value: 'en', child: Text(isAr ? 'الإنجليزية' : 'English', style: const TextStyle(color: Color(0xFF1A2543)))),
+                  DropdownMenuItem(
+                      value: 'ar',
+                      child: Text('عربي \\ Arabic',
+                          style: const TextStyle(color: Color(0xFF1A2543)))),
+                  DropdownMenuItem(
+                      value: 'en',
+                      child: Text('إنجليزي \\ English',
+                          style: const TextStyle(color: Color(0xFF1A2543)))),
                 ],
                 dropdownColor: Colors.white, // لون قائمة الخيارات
                 borderRadius: BorderRadius.circular(12), // حواف دائرية للقائمة المنسدلة
