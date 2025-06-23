@@ -74,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (success) {
-      userProvider.updateUser(
+      await userProvider.updateUser(
         username: name,
         email: email,
         phone: phone,

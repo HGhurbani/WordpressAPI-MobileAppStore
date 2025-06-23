@@ -2,9 +2,8 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../constants/app_config.dart';
 import '../models/user.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 
 class UserProvider extends ChangeNotifier {
   User? _user;
@@ -57,17 +56,9 @@ class UserProvider extends ChangeNotifier {
       return;
     }
 
-    final url = Uri.parse('${AppConfig.baseUrl}/wp-json/wc/v3/customers/$userId'
-        '?consumer_key=${AppConfig.consumerKey}&consumer_secret=${AppConfig.consumerSecret}');
-
-    try {
-      final response = await http.delete(url);
-
-      if (response.statusCode != 200) {
-        throw Exception('فشل حذف الحساب: ${response.body}');
-      }
-    } catch (e) {
-      debugPrint('خطأ أثناء حذف الحساب: \$e');
+    final success = await ApiService().deleteAccount(userId);
+    if (!success) {
+      debugPrint('خطأ أثناء حذف الحساب');
     }
 
     await prefs.clear();
@@ -75,17 +66,23 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateUser({
+  Future<void> updateUser({
     String? username,
     String? email,
     String? phone,
-  }) {
+  }) async {
     if (_user != null) {
       _user = _user!.copyWith(
         username: username ?? _user!.username,
         email: email ?? _user!.email,
         phone: phone ?? _user!.phone,
       );
+
+      final prefs = await SharedPreferences.getInstance();
+      if (username != null) await prefs.setString('user_name', _user!.username);
+      if (email != null) await prefs.setString('user_email', _user!.email);
+      if (phone != null) await prefs.setString('user_phone', _user!.phone);
+
       notifyListeners();
     }
   }
