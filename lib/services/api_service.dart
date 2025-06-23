@@ -216,6 +216,19 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     return response.statusCode == 200;
   }
 
+  Future<bool> deleteAccount(int userId) async {
+    final url =
+        '$baseUrl/customers/$userId?consumer_key=$ck&consumer_secret=$cs';
+
+    try {
+      final response = await http.delete(Uri.parse(url));
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error deleting account: $e');
+      return false;
+    }
+  }
+
   Future<bool> updateFcmToken(String email, String token) async {
     final url = "$baseUrl/wp-json/custom/v1/update-fcm-token";
 

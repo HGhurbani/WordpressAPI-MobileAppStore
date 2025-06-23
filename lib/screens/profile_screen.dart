@@ -431,10 +431,7 @@ class ProfileScreen extends StatelessWidget {
     );
 
     if (confirm == true) {
-      // هنا يجب أن تستدعي خدمة API لحذف الحساب
-      // for example: final success = await ApiService().deleteAccount();
-      // في هذا المثال، سنفترض النجاح ونقوم بحذف البيانات محلياً
-      await userProvider.deleteAccount(); // يجب أن تتضمن هذه الدالة منطق حذف الحساب من الـ API
+      await userProvider.deleteAccount();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
