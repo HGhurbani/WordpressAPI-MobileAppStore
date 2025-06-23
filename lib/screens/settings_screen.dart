@@ -66,12 +66,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    final success = await _apiService.updateUserInfo(
-      name: name,
-      email: email,
-      phone: phone,
-      password: password.isNotEmpty ? password : null,
-    );
+    bool success = false;
+    try {
+      success = await _apiService.updateUserInfo(
+        name: name,
+        email: email,
+        phone: phone,
+        password: password.isNotEmpty ? password : null,
+      );
+    } catch (e) {
+      if (e.toString().contains('expired_token')) {
+        if (!mounted) return;
+        _showSnackBar(isAr ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى.' : 'Session expired, please log in again.', Colors.red);
+        userProvider.logout();
+        Navigator.pushReplacementNamed(context, '/login');
+        setState(() { _isLoading = false; });
+        return;
+      }
+    }
 
     if (success) {
       await userProvider.updateUser(

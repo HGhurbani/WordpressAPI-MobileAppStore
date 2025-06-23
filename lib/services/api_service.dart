@@ -191,10 +191,16 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
 
       print("Update Response: ${response.statusCode} - ${response.body}");
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        return true;
+      } else if (response.statusCode == 403) {
+        throw Exception('expired_token');
+      } else {
+        return false;
+      }
     } catch (e) {
       print("Update Error: $e");
-      return false;
+      rethrow;
     }
   }
 
