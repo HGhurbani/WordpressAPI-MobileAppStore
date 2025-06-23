@@ -99,7 +99,10 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
       customPlanInstallmentTotal += calculatedTotal * item.quantity;
     }
 
-    double minFirstPaymentRequired = installmentFirstPayment;
+    // الحد الأدنى للدفعة الأولى للخطة المخصصة يشمل أي منتجات نقدية
+    double minFirstPaymentRequired = selectedPlan == 'custom'
+        ? installmentFirstPayment + cashTotal
+        : installmentFirstPayment;
 
     // حساب الرسوم الإضافية
     double extraCharge = (selectedPlan == 'custom' && customMonths == 6) ? 300.0 : 0.0;
