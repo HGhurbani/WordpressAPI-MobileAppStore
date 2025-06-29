@@ -99,18 +99,17 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
       customPlanInstallmentTotal += calculatedTotal * item.quantity;
     }
 
-    // الحد الأدنى للدفعة الأولى للخطة المخصصة يشمل أي منتجات نقدية
-    double minFirstPaymentRequired = selectedPlan == 'custom'
-        ? installmentFirstPayment + cashTotal
-        : installmentFirstPayment;
+    // الحد الأدنى للدفعة الأولى للخطة المخصصة يشمل فقط المنتجات بالتقسيط
+    double minFirstPaymentRequired = installmentFirstPayment;
 
     // حساب الرسوم الإضافية
     double extraCharge = (selectedPlan == 'custom' && customMonths == 6) ? 300.0 : 0.0;
 
-    // السعر الإجمالي للمنتجات القابلة للتقسيط بناءً على الخطة المختارة
-    double installmentTotalPrice = selectedPlan == 'custom'
-        ? customPlanInstallmentTotal + extraCharge
-        : defaultPlanInstallmentTotal + extraCharge;
+    // السعر الإجمالي للمنتجات (التقسيط والنقد) بناءً على الخطة المختارة
+    double installmentTotalPrice = (selectedPlan == 'custom'
+            ? customPlanInstallmentTotal + extraCharge
+            : defaultPlanInstallmentTotal + extraCharge) +
+        cashTotal;
 
     // عدد الأقساط بناءً على الخطة المختارة
     int numberOfInstallments = selectedPlan == 'default' ? 4 : customMonths;
@@ -301,7 +300,7 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
                 const SizedBox(height: 12),
                 _buildSummary(
                   isArabic: isArabic,
-                  totalFirstPayment: actualFirstPayment + cashTotal,
+                  totalFirstPayment: actualFirstPayment,
                   totalInstallments: numberOfInstallments,
                   extraCharge: extraCharge,
                   totalInstallmentPrice: installmentTotalPrice,
@@ -347,11 +346,11 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
                       MaterialPageRoute(
                         builder: (_) => CheckoutScreen(
                           isCustomPlan: selectedPlan == 'custom',
-                          downPayment: actualFirstPayment + cashTotal,
+                          downPayment: actualFirstPayment,
                           remainingAmount: remainingInstallmentAmount,
                           monthlyPayment: perInstallment,
                           numberOfInstallments: numberOfInstallments,
-                          totalPrice: installmentTotalPrice + cashTotal, // السعر الإجمالي يشمل التقسيط والنقد
+                          totalPrice: installmentTotalPrice, // السعر الإجمالي يشمل جميع المنتجات
                         ),
                       ),
                     );
