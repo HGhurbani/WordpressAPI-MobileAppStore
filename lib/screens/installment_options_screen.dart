@@ -250,12 +250,12 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
 
                   const SizedBox(height: 20),
                   // قسم إدخال الدفعة الأولى المخصصة
-                  _buildSectionTitle(
-                    isArabic
-                        ? "أدخل الدفعة الأولى (الحد الأدنى ${formatNumber(minFirstPaymentRequired)} ر.ق)"
-                        : "Enter Down Payment (Min ${formatNumber(minFirstPaymentRequired)} QAR)",
-                    isArabic: isArabic,
-                  ),
+                  // _buildSectionTitle(
+                  //   isArabic
+                  //       ? "أدخل الدفعة الأولى (الحد الأدنى ${formatNumber(minFirstPaymentRequired)} ر.ق)"
+                  //       : "Enter Down Payment (Min ${formatNumber(minFirstPaymentRequired)} QAR)",
+                  //   isArabic: isArabic,
+                  // ),
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: TextField(
@@ -264,7 +264,9 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
                       decoration: InputDecoration(
                         prefixIcon: Icon(Icons.money_rounded, color: accentColor),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        hintText: isArabic ? "أدخل الدفعة الأولى" : "Enter down payment",
+                        hintText: isArabic
+                            ? "أدخل الدفعة الأولى (الحد الأدنى ${formatNumber(minFirstPaymentRequired)} ر.ق)"
+                            : "Enter down payment (min ${formatNumber(minFirstPaymentRequired)} QAR)",
                         hintStyle: const TextStyle(color: Colors.grey),
                         filled: true,
                         fillColor: Colors.white,

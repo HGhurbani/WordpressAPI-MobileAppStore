@@ -645,8 +645,10 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                             Expanded(
                               child: _buildInfoItem(
                                 Icons.attach_money,
-                                'الإجمالي',
-                                '${order.total} ر.ق',
+                                'المقدم',
+                                order.metaData.containsKey('custom_installment')
+                                    ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ر.ق"
+                                    : "${order.total} ر.ق",
                               ),
                             ),
                           ],
@@ -919,7 +921,9 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
               _buildIconInfoRow(
                 Icons.attach_money,
                 "المقدم",
-                "${order.total} ر.ق",
+                order.metaData.containsKey('custom_installment')
+                    ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ر.ق"
+                    : "${order.total} ر.ق",
                 primaryColor,
                 accentColor,
               ),

@@ -84,7 +84,42 @@ class CartScreen extends StatelessWidget {
               ),
             ),
             // Removed the _buildCartSummary section here
-            _buildCheckoutButton(context, checkoutText),
+            Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, '/main');
+                      },
+                      icon: Icon(
+                        isArabic ? Icons.arrow_back : Icons.arrow_forward,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      label: Text(
+                        isArabic ? "الرجوع للتسوق" : "Back to Shopping",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6FE0DA),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                    ),
+                  ),
+                ),
+                _buildCheckoutButton(context, checkoutText),
+              ],
+            ),
           ],
         ),
       ),

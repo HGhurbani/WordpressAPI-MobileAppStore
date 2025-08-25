@@ -353,12 +353,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _summaryRowText(isAr ? "نوع الخطة" : "Plan Type", widget.isCustomPlan ? (isAr ? "مخصصة" : "Custom") : (isAr ? "افتراضية" : "Default")),
-          _summaryRow(isAr ? "الدفعة الأولى" : "Down Payment", widget.downPayment),
           _summaryRow(isAr ? "المبلغ المتبقي" : "Remaining Amount", widget.remainingAmount),
           _summaryRow(isAr ? "عدد الأقساط" : "Number of Installments", widget.numberOfInstallments.toDouble()),
           _summaryRow(isAr ? "قيمة كل قسط" : "Monthly Installment", widget.monthlyPayment),
+          _summaryRow(isAr ? "الإجمالي الكلي" : "Total Amount", widget.totalPrice),
           const Divider(height: 25, thickness: 1.5, color: Colors.black12), // More prominent divider
-          _summaryRow(isAr ? "الإجمالي الكلي" : "Total Amount", widget.totalPrice, isTotal: true),
+          _summaryRow(isAr ? "الدفعة الأولى" : "Down Payment", widget.downPayment, isTotal: true),
         ],
       ),
     );
