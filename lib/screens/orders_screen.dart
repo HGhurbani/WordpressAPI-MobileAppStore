@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
-import '../Models/order.dart';
+import '../models/order.dart';
 import '../providers/user_provider.dart';
 
 class OrdersScreen extends StatefulWidget {
