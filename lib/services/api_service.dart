@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_config.dart';
 import '../models/product.dart';
 import '../models/category.dart';
-import '../Models/order.dart';
+import '../models/order.dart';
 
 class ApiService {
   Uri _uri(
