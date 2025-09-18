@@ -1,9 +1,11 @@
 import 'package:creditphoneqa/services/notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'routes.dart';
 import 'providers/cart_provider.dart';
@@ -12,8 +14,20 @@ import 'providers/locale_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'theme.dart';
 
+Future<void> _loadEnvironment() async {
+  try {
+    await dotenv.load(fileName: '.env');
+  } on FlutterError catch (error) {
+    debugPrint('dotenv: ${error.message}');
+  } catch (error, stackTrace) {
+    debugPrint('Failed to load .env file: $error');
+    debugPrint('$stackTrace');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _loadEnvironment();
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService().initialize();
