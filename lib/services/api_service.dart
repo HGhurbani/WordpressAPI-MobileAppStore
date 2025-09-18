@@ -19,6 +19,26 @@ class ApiService {
     );
   }
 
+  Map<String, String> _defaultHeaders({
+    Map<String, String>? additional,
+    bool includeJson = false,
+  }) {
+    final headers = <String, String>{
+      'Accept': 'application/json',
+      ...AppConfig.wooCommerceAuthHeaders,
+    };
+
+    if (includeJson) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (additional != null) {
+      headers.addAll(additional);
+    }
+
+    return headers;
+  }
+
   List<dynamic> _ensureList(
     dynamic payload, {
     String? fallbackKey,
@@ -62,6 +82,7 @@ class ApiService {
           'max_price': maxPrice,
         },
       ),
+      headers: _defaultHeaders(),
     );
 
     if (response.statusCode == 200) {
@@ -77,9 +98,10 @@ class ApiService {
   Future<List<Category>> getCategories({String language = "ar"}) async {
     final response = await http.get(
       _uri(
-        '/categories',
+        '/products/categories',
         queryParameters: {'lang': language},
       ),
+      headers: _defaultHeaders(),
     );
 
     if (response.statusCode == 200) {
@@ -113,6 +135,7 @@ class ApiService {
         '/products/$id',
         queryParameters: {'lang': language},
       ),
+      headers: _defaultHeaders(),
     );
 
     if (response.statusCode == 200) {
@@ -172,7 +195,7 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
 
     final response = await http.post(
       _uri('/orders'),
-      headers: {"Content-Type": "application/json"},
+      headers: _defaultHeaders(includeJson: true),
       body: jsonEncode(orderData),
     );
 
@@ -195,10 +218,11 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       _uri(
         '/orders',
         queryParameters: {
-          'email': userEmail,
+          'search': userEmail,
           'lang': language,
         },
       ),
+      headers: _defaultHeaders(),
     );
 
     if (response.statusCode == 200) {
@@ -222,14 +246,23 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     required String phone,
     String? password,
   }) async {
-    final url = _uri('/account/update');
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
 
-    final token = await _getUserToken();
+    if (userId == null || userId == 0) {
+      throw Exception('user_id_missing');
+    }
+
+    final url = _uri('/customers/$userId');
 
     final body = {
-      'name': name,
       'email': email,
-      'phone': phone,
+      'first_name': name,
+      'billing': {
+        'first_name': name,
+        'email': email,
+        'phone': phone,
+      },
     };
 
     if (password != null && password.isNotEmpty) {
@@ -237,12 +270,9 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     }
 
     try {
-      final response = await http.post(
+      final response = await http.put(
         url,
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: _defaultHeaders(includeJson: true),
         body: jsonEncode(body),
       );
 
@@ -261,15 +291,11 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     }
   }
 
-  Future<String?> _getUserToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('user_token');
-  }
-
   Future<bool> cancelOrder(int orderId) async {
-    final response = await http.post(
-      _uri('/orders/$orderId/cancel'),
-      headers: {"Content-Type": "application/json"},
+    final response = await http.put(
+      _uri('/orders/$orderId'),
+      headers: _defaultHeaders(includeJson: true),
+      body: jsonEncode({'status': 'cancelled'}),
     );
 
     return response.statusCode == 200 || response.statusCode == 204;
@@ -278,7 +304,11 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
   Future<bool> deleteAccount(int userId) async {
     try {
       final response = await http.delete(
-        _uri('/customers/$userId'),
+        _uri(
+          '/customers/$userId',
+          queryParameters: {'force': true},
+        ),
+        headers: _defaultHeaders(),
       );
       return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
@@ -290,8 +320,8 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
   Future<bool> updateFcmToken(String email, String token) async {
     try {
       final response = await http.post(
-        _uri('/notifications/fcm'),
-        headers: {"Content-Type": "application/json"},
+        Uri.parse('https://creditphoneqatar.com/wp-json/app/v1/notifications/fcm'),
+        headers: const {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": email,
           "fcm_token": token,

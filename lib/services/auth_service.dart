@@ -47,6 +47,8 @@ class AuthService {
       AppConfig.buildBackendUri('/customers'),
       headers: {
         "Content-Type": "application/json",
+        'Accept': 'application/json',
+        ...AppConfig.wooCommerceAuthHeaders,
       },
       body: jsonEncode({
         "email": email,
@@ -72,6 +74,7 @@ class AuthService {
       }
 
       return User.fromJson({
+        "id": customerData["id"],
         "token": "",
         "user_display_name":
             customerData["username"] ?? customerData["name"] ?? "",
