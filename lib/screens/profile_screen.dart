@@ -371,10 +371,10 @@ class ProfileScreen extends StatelessWidget {
   }
 
   // دالة تأكيد تسجيل الخروج (مكررة من SettingsScreen مع تعديل طفيف)
-  void _confirmLogout(BuildContext context, UserProvider userProvider, bool isArabic) {
+  void _confirmLogout(BuildContext parentContext, UserProvider userProvider, bool isArabic) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: parentContext,
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(isArabic ? 'تأكيد تسجيل الخروج' : 'Confirm Logout', style: const TextStyle(color: _primaryColor)),
@@ -382,7 +382,7 @@ class ProfileScreen extends StatelessWidget {
         actions: [
           TextButton(
             child: Text(isArabic ? 'إلغاء' : 'Cancel', style: const TextStyle(color: _primaryColor)),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -390,10 +390,12 @@ class ProfileScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(isArabic ? 'تسجيل الخروج' : 'Logout', style: const TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.pop(context);
-              userProvider.logout();
-              Navigator.pushReplacementNamed(context, '/login'); // إعادة توجيه لصفحة تسجيل الدخول
+            onPressed: () async {
+              final navigator = Navigator.of(parentContext);
+              Navigator.pop(dialogContext);
+              await userProvider.logout();
+              if (!navigator.mounted) return;
+              navigator.pushReplacementNamed('/login'); // إعادة توجيه لصفحة تسجيل الدخول
             },
           ),
         ],

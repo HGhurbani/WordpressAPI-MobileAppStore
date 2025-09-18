@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/product.dart';
-import '../Models/installment_plan.dart';
+import '../models/installment_plan.dart';
 
 class CartProvider extends ChangeNotifier {
   // قم بتغيير _CartItem إلى CartItem هنا

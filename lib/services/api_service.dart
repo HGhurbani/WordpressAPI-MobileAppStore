@@ -1,59 +1,93 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../constants/app_config.dart';
 import '../models/product.dart';
 import '../models/category.dart';
-import '../Models/order.dart';
+import '../models/order.dart';
 
 class ApiService {
-  final String baseUrl = AppConfig.baseUrl;
-  final String ck = AppConfig.consumerKey;
-  final String cs = AppConfig.consumerSecret;
+  Uri _uri(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) {
+    return AppConfig.buildBackendUri(
+      path,
+      queryParameters: queryParameters,
+    );
+  }
+
+  List<dynamic> _ensureList(
+    dynamic payload, {
+    String? fallbackKey,
+  }) {
+    if (payload is List) {
+      return payload;
+    }
+
+    if (payload is Map<String, dynamic>) {
+      if (fallbackKey != null && payload[fallbackKey] is List) {
+        return List<dynamic>.from(payload[fallbackKey] as List);
+      }
+      for (final entry in payload.entries) {
+        if (entry.value is List) {
+          return List<dynamic>.from(entry.value as List);
+        }
+      }
+    }
+
+    throw Exception('Unexpected response format from backend: $payload');
+  }
 
   // جلب قائمة المنتجات مع دعم اللغة وفلترة السعر
   Future<List<Product>> getProducts({
     int? categoryId,
     String language = "ar",
     int perPage = 6,
-    int page = 1, // ✅ أضف page هنا
-    double? minPrice, // فلترة السعر الأدنى
-    double? maxPrice, // فلترة السعر الأعلى
+    int page = 1,
+    double? minPrice,
+    double? maxPrice,
   }) async {
-    String url = "$baseUrl/products?consumer_key=$ck&consumer_secret=$cs&lang=$language&page=$page&per_page=$perPage";
-
-    // إضافة الفلاتر للصنف والسعر إذا كانت موجودة
-    if (categoryId != null) {
-      url += "&category=$categoryId";
-    }
-    if (minPrice != null) {
-      url += "&min_price=$minPrice";
-    }
-    if (maxPrice != null) {
-      url += "&max_price=$maxPrice";
-    }
-
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(
+      _uri(
+        '/products',
+        queryParameters: {
+          'lang': language,
+          'per_page': perPage,
+          'page': page,
+          'category': categoryId,
+          'min_price': minPrice,
+          'max_price': maxPrice,
+        },
+      ),
+    );
 
     if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.map((item) => Product.fromJson(item)).toList();
+      final data = jsonDecode(response.body);
+      final productsJson = _ensureList(data, fallbackKey: 'products');
+      return productsJson.map((item) => Product.fromJson(item)).toList();
     } else {
-      throw Exception("Failed to load products");
+      throw Exception("Failed to load products: ${response.body}");
     }
   }
 
-
-
   // جلب التصنيفات مع دعم اللغة
   Future<List<Category>> getCategories({String language = "ar"}) async {
-    String url = "$baseUrl/products/categories?consumer_key=$ck&consumer_secret=$cs&per_page=100&lang=$language";
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(
+      _uri(
+        '/categories',
+        queryParameters: {'lang': language},
+      ),
+    );
+
     if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      return data.map((item) => Category.fromJson(item)).toList();
+      final data = jsonDecode(response.body);
+      final categoriesJson = _ensureList(data, fallbackKey: 'categories');
+      return categoriesJson.map((item) => Category.fromJson(item)).toList();
     } else {
-      throw Exception("Failed to load categories");
+      throw Exception("Failed to load categories: ${response.body}");
     }
   }
 
@@ -72,16 +106,26 @@ class ApiService {
     return products;
   }
 
-
   // جلب منتج واحد عبر الـID مع دعم اللغة
   Future<Product> getProductById(int id, {String language = "ar"}) async {
-    String url = "$baseUrl/products/$id?consumer_key=$ck&consumer_secret=$cs&lang=$language";
-    final response = await http.get(Uri.parse(url));
+    final response = await http.get(
+      _uri(
+        '/products/$id',
+        queryParameters: {'lang': language},
+      ),
+    );
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return Product.fromJson(data);
+      if (data is Map<String, dynamic>) {
+        return Product.fromJson(data);
+      }
+      if (data is List && data.isNotEmpty) {
+        return Product.fromJson(data.first as Map<String, dynamic>);
+      }
+      throw Exception('Unexpected product payload: $data');
     } else {
-      throw Exception("Failed to load product");
+      throw Exception("Failed to load product: ${response.body}");
     }
   }
 
@@ -96,8 +140,6 @@ class ApiService {
     required bool isNewCustomer,
     String? customerNote,
   }) async {
-    String url = "$baseUrl/orders?consumer_key=$ck&consumer_secret=$cs";
-
     String orderNotes = "Installment Type: $installmentType\n";
     if (customInstallment != null) {
       orderNotes += """
@@ -129,13 +171,17 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     };
 
     final response = await http.post(
-      Uri.parse(url),
+      _uri('/orders'),
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(orderData),
     );
 
-    if (response.statusCode == 201) {
-      return jsonDecode(response.body);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) {
+        return data;
+      }
+      throw Exception('Unexpected order response format: $data');
     } else {
       throw Exception("Failed to create order: ${response.body}");
     }
@@ -145,17 +191,28 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     required String userEmail,
     String language = "ar",
   }) async {
-    final url = "$baseUrl/orders?consumer_key=$ck&consumer_secret=$cs&lang=$language";
+    final response = await http.get(
+      _uri(
+        '/orders',
+        queryParameters: {
+          'email': userEmail,
+          'lang': language,
+        },
+      ),
+    );
 
-    final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      final allOrders = data.map((item) => Order.fromJson(item)).toList();
+      final data = jsonDecode(response.body);
+      final ordersJson = _ensureList(data, fallbackKey: 'orders');
+      final orders = ordersJson
+          .map((item) => Order.fromJson(item as Map<String, dynamic>))
+          .toList();
 
-      // فقط طلبات هذا المستخدم
-      return allOrders.where((order) => order.billingEmail == userEmail).toList();
+      return orders
+          .where((order) => order.billingEmail == userEmail)
+          .toList();
     } else {
-      throw Exception("فشل تحميل الطلبات");
+      throw Exception("فشل تحميل الطلبات: ${response.body}");
     }
   }
 
@@ -165,9 +222,9 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     required String phone,
     String? password,
   }) async {
-    final url = "$baseUrl/wp-json/custom/v1/update-user";
+    final url = _uri('/account/update');
 
-    final token = await _getUserToken(); // 🔐 التوكن من SharedPreferences أو UserProvider
+    final token = await _getUserToken();
 
     final body = {
       'name': name,
@@ -181,10 +238,10 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
 
     try {
       final response = await http.post(
-        Uri.parse(url),
+        url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token', // 👈 توثيق JWT
+          if (token != null) 'Authorization': 'Bearer $token',
         },
         body: jsonEncode(body),
       );
@@ -204,31 +261,26 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     }
   }
 
-
   Future<String?> _getUserToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('user_token');
   }
 
-
   Future<bool> cancelOrder(int orderId) async {
-    final url = "$baseUrl/orders/$orderId?consumer_key=$ck&consumer_secret=$cs&status=cancelled";
-
-    final response = await http.put(
-      Uri.parse(url),
+    final response = await http.post(
+      _uri('/orders/$orderId/cancel'),
       headers: {"Content-Type": "application/json"},
     );
 
-    return response.statusCode == 200;
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 
   Future<bool> deleteAccount(int userId) async {
-    final url =
-        '$baseUrl/customers/$userId?consumer_key=$ck&consumer_secret=$cs';
-
     try {
-      final response = await http.delete(Uri.parse(url));
-      return response.statusCode == 200;
+      final response = await http.delete(
+        _uri('/customers/$userId'),
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
     } catch (e) {
       print('Error deleting account: $e');
       return false;
@@ -236,17 +288,13 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
   }
 
   Future<bool> updateFcmToken(String email, String token) async {
-    final url = "$baseUrl/wp-json/custom/v1/update-fcm-token";
-
     try {
       final response = await http.post(
-        Uri.parse(url),
+        _uri('/notifications/fcm'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "email": email,
           "fcm_token": token,
-          "consumer_key": ck,
-          "consumer_secret": cs,
         }),
       );
 

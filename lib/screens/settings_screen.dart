@@ -78,9 +78,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (e.toString().contains('expired_token')) {
         if (!mounted) return;
         _showSnackBar(isAr ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى.' : 'Session expired, please log in again.', Colors.red);
-        userProvider.logout();
+        await userProvider.logout();
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/login');
-        setState(() { _isLoading = false; });
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
     }
@@ -105,7 +108,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _confirmLogout(UserProvider userProvider, bool isAr) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(isAr ? 'تأكيد تسجيل الخروج' : 'Confirm Logout', style: const TextStyle(color: Color(0xFF1A2543))),
@@ -113,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             child: Text(isAr ? 'إلغاء' : 'Cancel', style: const TextStyle(color: Color(0xFF1A2543))),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
           ),
           ElevatedButton( // استخدام ElevatedButton لزر تسجيل الخروج
             style: ElevatedButton.styleFrom(
@@ -121,9 +124,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(isAr ? 'تسجيل الخروج' : 'Logout', style: const TextStyle(color: Colors.white)),
-            onPressed: () {
-              Navigator.pop(context);
-              userProvider.logout();
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await userProvider.logout();
+              if (!mounted) return;
               Navigator.pushReplacementNamed(context, '/login');
             },
           ),

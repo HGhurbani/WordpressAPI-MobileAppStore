@@ -1,12 +1,39 @@
 // lib/constants/app_config.dart
 
 class AppConfig {
-  static const String baseUrl = "https://creditphoneqatar.com/wp-json/wc/v3";
-  static const String consumerKey = "ck_3344026e4d873a6013ec165a13277bc826bd7e7e";
-  static const String consumerSecret = "cs_fa6a8b8eb7643166eede6750a1a6538c4334d027";
+  /// Base URL for the secure backend that proxies WooCommerce requests.
+  ///
+  /// The backend is responsible for handling authentication with WooCommerce
+  /// so that sensitive credentials never ship with the application binary.
+  static const String backendBaseUrl =
+      "https://creditphoneqatar.com/wp-json/app-proxy/v1";
 
-  // إذا كنت تستخدم توثيق JWT:
-  static const String jwtLoginUrl = "https://creditphoneqatar.com/wp-json/jwt-auth/v1/token";
-  static const jwtRegisterUrl = "https://creditphoneqatar.com/wp-json/wc/v3/customers?consumer_key=ck_XXX&consumer_secret=cs_XXX";
-// الخ ...
+  /// Helper for building a backend [Uri] with optional query parameters while
+  /// skipping null values.
+  static Uri buildBackendUri(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) {
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    final uri = Uri.parse('$backendBaseUrl$normalizedPath');
+
+    if (queryParameters == null || queryParameters.isEmpty) {
+      return uri;
+    }
+
+    final sanitized = <String, String>{};
+    queryParameters.forEach((key, value) {
+      if (value == null) return;
+      sanitized[key] = value.toString();
+    });
+
+    if (sanitized.isEmpty) {
+      return uri;
+    }
+
+    return uri.replace(queryParameters: sanitized);
+  }
+
+  static const String jwtLoginUrl =
+      "https://creditphoneqatar.com/wp-json/jwt-auth/v1/token";
 }

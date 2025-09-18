@@ -41,12 +41,10 @@ class AuthService {
   }
 
   // التسجيل (إنشاء حساب جديد)
-  Future<User> register(String username, String email, String password, String phone) async {
-    final url = "${AppConfig.baseUrl}/customers"
-        "?consumer_key=${AppConfig.consumerKey}&consumer_secret=${AppConfig.consumerSecret}";
-
+  Future<User> register(
+      String username, String email, String password, String phone) async {
     final response = await http.post(
-      Uri.parse(url),
+      AppConfig.buildBackendUri('/customers'),
       headers: {
         "Content-Type": "application/json",
       },
@@ -60,13 +58,25 @@ class AuthService {
       }),
     );
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final data = jsonDecode(response.body);
+      Map<String, dynamic> customerData;
+      if (data is Map<String, dynamic>) {
+        if (data['customer'] is Map<String, dynamic>) {
+          customerData = Map<String, dynamic>.from(data['customer']);
+        } else {
+          customerData = data;
+        }
+      } else {
+        throw Exception('Unexpected registration response format: $data');
+      }
+
       return User.fromJson({
         "token": "",
-        "user_display_name": data["username"],
-        "user_email": data["email"],
-        "phone": data["billing"]?["phone"] ?? "",
+        "user_display_name":
+            customerData["username"] ?? customerData["name"] ?? "",
+        "user_email": customerData["email"] ?? "",
+        "phone": customerData["billing"]?["phone"] ?? "",
       });
     } else {
       final error = jsonDecode(response.body);
