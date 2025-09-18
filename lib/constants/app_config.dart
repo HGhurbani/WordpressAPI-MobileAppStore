@@ -12,14 +12,14 @@ class AppConfig {
   /// Provide a value at build time using:
   /// `flutter run --dart-define=WOO_CONSUMER_KEY=ck_xxx`.
   static const String consumerKey =
-      String.fromEnvironment('WOO_CONSUMER_KEY', defaultValue: '');
+      String.fromEnvironment('ck_3344026e4d873a6013ec165a13277bc826bd7e7e', defaultValue: '');
 
   /// Consumer secret for authenticating against WooCommerce.
   ///
   /// Provide a value at build time using:
   /// `flutter run --dart-define=WOO_CONSUMER_SECRET=cs_xxx`.
   static const String consumerSecret =
-      String.fromEnvironment('WOO_CONSUMER_SECRET', defaultValue: '');
+      String.fromEnvironment('cs_fa6a8b8eb7643166eede6750a1a6538c4334d027', defaultValue: '');
 
   static bool get hasWooCommerceCredentials =>
       consumerKey.isNotEmpty && consumerSecret.isNotEmpty;
