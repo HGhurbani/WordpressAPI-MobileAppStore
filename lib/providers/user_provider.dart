@@ -43,7 +43,16 @@ class UserProvider extends ChangeNotifier {
       ));
     }
   }
-  void logout() {
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_id');
+    await prefs.remove('user_token');
+    await prefs.remove('user_name');
+    await prefs.remove('user_email');
+    await prefs.remove('user_phone');
+    await prefs.remove('saved_username');
+    await prefs.remove('remember_me');
+
     _user = null;
     notifyListeners();
   }
