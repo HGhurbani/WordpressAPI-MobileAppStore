@@ -5,6 +5,7 @@ import '../providers/user_provider.dart';
 import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../models/user.dart';
 import '../utils.dart'; // Assuming this contains formatNumber
 
 extension ContextExtensions on BuildContext {
@@ -408,6 +409,94 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
+  Future<void> _ensureUserIsRegisteredAndLoggedIn({
+    required String username,
+    required String email,
+    required String phone,
+    required String password,
+    required bool isAr,
+    required UserProvider userProvider,
+  }) async {
+    try {
+      await _authService.register(username, email, password, phone);
+    } catch (error) {
+      final message = _extractErrorMessage(error);
+      if (!_isDuplicateAccountError(message)) {
+        throw CheckoutAuthException(
+          isAr
+              ? 'تعذّر إنشاء الحساب: $message'
+              : 'Failed to create the account: $message',
+        );
+      }
+    }
+
+    try {
+      final user = await _loginWithEmailOrUsername(
+        email: email,
+        username: username,
+        password: password,
+      );
+      userProvider.setUser(user);
+    } catch (error) {
+      final message = _extractErrorMessage(error);
+      throw CheckoutAuthException(
+        isAr
+            ? 'تعذّر تسجيل الدخول. يرجى التأكد من صحة البريد الإلكتروني/اسم المستخدم وكلمة المرور أو تسجيل الدخول يدويًا. التفاصيل: $message'
+            : 'We could not sign you in. Please verify your email/username and password or sign in manually. Details: $message',
+      );
+    }
+  }
+
+  Future<User> _loginWithEmailOrUsername({
+    required String email,
+    required String username,
+    required String password,
+  }) async {
+    dynamic lastError;
+
+    if (email.isNotEmpty) {
+      try {
+        return await _authService.login(email, password);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (username.isNotEmpty) {
+      try {
+        return await _authService.login(username, password);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (lastError is Exception) {
+      throw lastError;
+    }
+
+    throw Exception(lastError?.toString() ?? 'Unknown login error');
+  }
+
+  String _extractErrorMessage(dynamic error) {
+    final rawMessage = error.toString();
+    const prefix = 'Exception: ';
+    if (rawMessage.startsWith(prefix)) {
+      return rawMessage.substring(prefix.length);
+    }
+    return rawMessage;
+  }
+
+  bool _isDuplicateAccountError(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('already registered') ||
+        lower.contains('already exists') ||
+        lower.contains('email exists') ||
+        lower.contains('email address is already') ||
+        lower.contains('مسجل') ||
+        lower.contains('موجود') ||
+        lower.contains('duplicate');
+  }
+
   Future<void> _placeOrder() async {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -423,7 +512,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
-    if (!userProvider.isLoggedIn) {
+    final wasLoggedIn = userProvider.isLoggedIn;
+
+    if (!wasLoggedIn) {
       if (_residentInQatar == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -456,7 +547,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
 
-    final isLoggedIn = userProvider.isLoggedIn;
     final customerName = _fullNameController.text.trim();
     final customerEmail = _emailController.text.trim();
     final customerPhone = _phoneController.text.trim();
@@ -483,13 +573,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _loading = true);
 
     try {
+      if (!wasLoggedIn) {
+        await _ensureUserIsRegisteredAndLoggedIn(
+          username: customerName,
+          email: customerEmail,
+          phone: customerPhone,
+          password: _passwordController.text.trim(),
+          isAr: isAr,
+          userProvider: userProvider,
+        );
+      }
+
       await _apiService.createOrder(
         customerName: customerName,
         customerEmail: customerEmail,
         customerPhone: customerPhone,
         lineItems: lineItems,
         installmentType: widget.isCustomPlan ? "custom" : "default",
-        isNewCustomer: !isLoggedIn,
+        isNewCustomer: !wasLoggedIn,
         customerNote: _noteController.text,
         customInstallment: widget.isCustomPlan
             ? {
@@ -500,6 +601,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
             : null,
       );
+
+      if (!mounted) {
+        cartProvider.clearCart();
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -513,7 +619,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       Navigator.of(context).pushNamedAndRemoveUntil('/orders', (route) => false);
 
+    } on CheckoutAuthException catch (authError) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authError.message),
+          backgroundColor: Colors.red,
+        ),
+      );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isAr ? "فشل في إرسال الطلب. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى." : "Failed to submit order. Please check your internet connection and try again."),
@@ -521,7 +636,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       );
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
+}
+
+class CheckoutAuthException implements Exception {
+  final String message;
+
+  CheckoutAuthException(this.message);
+
+  @override
+  String toString() => message;
 }
