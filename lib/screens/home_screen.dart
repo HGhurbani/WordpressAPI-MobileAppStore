@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   @override
   bool get wantKeepAlive => true;
   final apiService = ApiService();
-  late Future<List<Category>> _futureCategories;
+  Future<List<Category>> _futureCategories = Future.value(const []);
   final ValueNotifier<int> _notificationCount = ValueNotifier<int>(0);
   final List<int> topRequestedProductIdsAr = [12226, 12261, 12245, 12762];
   final List<int> topRequestedProductIdsEn = [12902, 13310, 13325, 12835];
@@ -61,9 +61,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       curve: Curves.easeOutCubic,
     );
 
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    _futureCategories =
+        apiService.getCategories(language: localeProvider.locale.languageCode);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-      _loadData(localeProvider.locale.languageCode);
       _startNotificationPolling();
       _startAnimations();
       await _checkFirstTime(); // ← اجعلها async
