@@ -8,6 +8,7 @@ import '../providers/user_provider.dart';
 import 'home_screen.dart';
 import 'cart_screen.dart';
 import 'profile_screen.dart';
+import 'installment_store_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({Key? key}) : super(key: key);
@@ -23,6 +24,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   final List<Widget> _screens = const [
     HomeScreen(),
+    InstallmentStoreScreen(),
     CartScreen(),
     ProfileScreen(),
   ];
@@ -60,8 +62,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     final isArabic = languageCode == 'ar';
 
     final navLabels = isArabic
-        ? ['الرئيسية', 'السلة', 'حسابي']
-        : ['Home', 'Cart', 'Profile'];
+        ? ['الرئيسية', 'تقسيط', 'السلة', 'حسابي']
+        : ['Home', 'Installments', 'Cart', 'Profile'];
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
@@ -157,22 +159,28 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                       delay: 100,
                     ),
                     _buildAnimatedDrawerItem(
+                      Icons.payments_rounded,
+                      isAr ? "متجر التقسيط" : "Installment Store",
+                          () => _navigateFromDrawer(context, '/installment-store'),
+                      delay: 200,
+                    ),
+                    _buildAnimatedDrawerItem(
                       Icons.shopping_bag_rounded,
                       isAr ? "السلة" : "Cart",
                           () => _navigateFromDrawer(context, '/cart'),
-                      delay: 200,
+                      delay: 300,
                     ),
                     _buildAnimatedDrawerItem(
                       Icons.receipt_long_rounded,
                       isAr ? "طلباتي" : "Orders",
                           () => _navigateFromDrawer(context, isLoggedIn ? '/orders' : '/login'),
-                      delay: 300,
+                      delay: 400,
                     ),
                     _buildAnimatedDrawerItem(
                       Icons.settings_rounded,
                       isAr ? "الإعدادات / Settings" : "الإعدادات / Settings",
                           () => _navigateFromDrawer(context, '/settings'),
-                      delay: 400,
+                      delay: 500,
                     ),
                     // خط فاصل أنيق
                     Container(
@@ -192,31 +200,31 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                       Icons.support_agent_rounded,
                       isAr ? "تواصل معنا" : "Contact Us",
                           () => _showContactDialog(context, isAr),
-                      delay: 500,
+                      delay: 600,
                     ),
                     _buildAnimatedDrawerItem(
                       Icons.lock_person_rounded,
                       isAr ? "سياسة الخصوصية" : "Privacy Policy",
                           () => _navigateFromDrawer(context, '/privacy'),
-                      delay: 600,
+                      delay: 700,
                     ),
                     _buildAnimatedDrawerItem(
                       Icons.rule_folder_rounded,
                       isAr ? "شروط الاستخدام" : "Terms of Use",
                           () => _navigateFromDrawer(context, '/terms'),
-                      delay: 700,
+                      delay: 800,
                     ),
                     _buildAnimatedDrawerItem(
                       Icons.info_rounded,
                       isAr ? "نبذة عنا" : "About Us",
                           () => _navigateFromDrawer(context, '/about'),
-                      delay: 800,
+                      delay: 900,
                     ),
                     _buildAnimatedDrawerItem(
                       Icons.help_outline_rounded,
                       isAr ? "الأسئلة الشائعة" : "FAQs",
                           () => _navigateFromDrawer(context, '/faq'),
-                      delay: 900,
+                      delay: 1000,
                       isLast: true, // للإشارة إلى العنصر الأخير لتعديل الهامش
                     ),
                   ],
@@ -613,13 +621,17 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                 label: navLabels[0],
               ),
               BottomNavigationBarItem(
+                icon: _buildEnhancedNavIcon(Icons.payments_rounded, 1),
+                label: navLabels[1],
+              ),
+              BottomNavigationBarItem(
                 icon: Consumer<CartProvider>(
                   builder: (context, cartProvider, child) {
                     int count = cartProvider.items.fold(0, (sum, item) => sum + item.quantity);
                     return Stack(
                       clipBehavior: Clip.none, // للسماح للشارة بالظهور خارج الحدود
                       children: [
-                        _buildEnhancedNavIcon(Icons.shopping_bag_rounded, 1),
+                        _buildEnhancedNavIcon(Icons.shopping_bag_rounded, 2),
                         if (count > 0) // إظهار الشارة فقط إذا كان هناك عناصر في السلة
                           Positioned(
                             right: -8,
@@ -657,11 +669,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                     );
                   },
                 ),
-                label: navLabels[1],
+                label: navLabels[2],
               ),
               BottomNavigationBarItem(
-                icon: _buildEnhancedNavIcon(Icons.account_circle_rounded, 2),
-                label: navLabels[2],
+                icon: _buildEnhancedNavIcon(Icons.account_circle_rounded, 3),
+                label: navLabels[3],
               ),
             ],
           ),

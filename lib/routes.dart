@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'screens/about_screen.dart';
 import 'screens/faq_screen.dart';
 import 'screens/installment_options_screen.dart';
+import 'screens/installment_store_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart'; // تأكد من وجود هذا الملف
@@ -41,6 +42,7 @@ class AppRoutes {
     '/about': (context) => const AboutUsScreen(),
     '/faq': (context) => const FaqScreen(),
     '/installment-options': (context) => const InstallmentOptionsScreen(),
+    '/installment-store': (context) => const InstallmentStoreScreen(),
 
 
   };
