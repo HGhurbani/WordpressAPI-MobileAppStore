@@ -15,7 +15,10 @@ class HomeCategoryCard extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (ctx) => ProductListScreen(categoryId: category.id),
+            builder: (ctx) => ProductListScreen(
+              categoryId: category.id,
+              showCashOnly: true,
+            ),
           ),
         ),
         borderRadius: BorderRadius.circular(20),
