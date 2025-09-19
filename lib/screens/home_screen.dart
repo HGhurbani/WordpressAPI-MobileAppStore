@@ -336,9 +336,9 @@ class _HomeScreenState extends State<HomeScreen>
                     color: Color(0xFF1A2543),
                   ),
                 ),
-                if (user?.username != null)
+                if (user != null)
                   Text(
-                    user!.username!,
+                    user.username,
                     style: TextStyle(
                       fontSize: 14,
                       color: const Color(0xFF1A2543).withOpacity(0.7),
@@ -1214,7 +1214,13 @@ class _HomeScreenState extends State<HomeScreen>
           );
         }
 
-        final products = snapshot.data!;
+        // Cash-only: filter out products that have installment description
+        final products = snapshot.data!
+            .where((p) => p.shortDescription.trim().isEmpty)
+            .toList();
+        if (products.isEmpty) {
+          return const SizedBox.shrink();
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1402,7 +1408,10 @@ class _HomeScreenState extends State<HomeScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ProductListScreen(categoryId: category.id),
+                          builder: (context) => ProductListScreen(
+                            categoryId: category.id,
+                            showCashOnly: true,
+                          ),
                         ),
                       );
                       HapticFeedback.lightImpact();
@@ -1470,7 +1479,10 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 );
               }
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              // Cash-only: filter fetched products to cash items
+              final fetched = snapshot.data ?? const <Product>[];
+              final cashProducts = fetched.where((p) => p.shortDescription.trim().isEmpty).toList();
+              if (cashProducts.isEmpty) {
                 return Container(
                   height: 150,
                   margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -1503,7 +1515,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 );
               }
-              final products = snapshot.data!;
+              final products = cashProducts;
               return SizedBox(
                 height: 290,
                 child: ListView.builder(

@@ -9,6 +9,8 @@ class ProductListScreen extends StatefulWidget {
   final int? categoryId;
   final String? sortBy; // ← أضفنا هذا السطر لدعم الفرز
   final bool showInstallmentOnly;
+  final bool showCashOnly;
+  final String? initialQuery;
   final String? titleAr;
   final String? titleEn;
   final String? searchHintAr;
@@ -21,6 +23,8 @@ class ProductListScreen extends StatefulWidget {
     this.categoryId,
     this.sortBy,
     this.showInstallmentOnly = false,
+    this.showCashOnly = false,
+    this.initialQuery,
     this.titleAr,
     this.titleEn,
     this.searchHintAr,
@@ -53,6 +57,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.initState();
     final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
     _language = locale.languageCode;
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _searchController.text = widget.initialQuery!;
+    }
 
     _fetchProducts();
 
@@ -123,10 +130,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   List<Product> _applyInstallmentFilter(List<Product> products) {
-    if (!widget.showInstallmentOnly) return products;
-    return products
-        .where((product) => product.shortDescription.trim().isNotEmpty)
-        .toList();
+    // If cash-only requested, keep products with empty shortDescription
+    if (widget.showCashOnly) {
+      return products
+          .where((product) => product.shortDescription.trim().isEmpty)
+          .toList();
+    }
+    // If installment-only requested, keep products with non-empty shortDescription
+    if (widget.showInstallmentOnly) {
+      return products
+          .where((product) => product.shortDescription.trim().isNotEmpty)
+          .toList();
+    }
+    return products;
   }
 
   List<Product> _applySearch(String query, {List<Product>? baseList}) {
