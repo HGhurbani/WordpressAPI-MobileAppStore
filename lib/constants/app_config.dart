@@ -8,13 +8,13 @@ class AppConfig {
       "https://creditphoneqatar.com/wp-json/wc/v3";
 
   static String get _consumerKeyFromDartDefine => const String.fromEnvironment(
-        'ck_3344026e4d873a6013ec165a13277bc826bd7e7e',
+        'WOO_CONSUMER_KEY',
         defaultValue: '',
       );
 
   static String get _consumerSecretFromDartDefine =>
       const String.fromEnvironment(
-        'cs_fa6a8b8eb7643166eede6750a1a6538c4334d027',
+        'WOO_CONSUMER_SECRET',
         defaultValue: '',
       );
 
