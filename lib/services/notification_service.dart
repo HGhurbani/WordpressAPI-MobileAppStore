@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -16,6 +17,7 @@ class NotificationService {
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _notificationsListKey = 'notifications';
   static const String _unreadCountKey = 'unread_notifications';
+  static StreamSubscription<RemoteMessage>? _foregroundSubscription;
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -38,9 +40,21 @@ class NotificationService {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _handleForegroundMessage(message);
-    });
+    if (notificationsEnabled) {
+      _startForegroundListener();
+    } else {
+      await _stopForegroundListener();
+    }
+  }
+
+  void _startForegroundListener() {
+    _foregroundSubscription ??=
+        FirebaseMessaging.onMessage.listen((RemoteMessage message) => _handleForegroundMessage(message));
+  }
+
+  Future<void> _stopForegroundListener() async {
+    await _foregroundSubscription?.cancel();
+    _foregroundSubscription = null;
   }
 
   Future<void> _requestPermission() async {
@@ -56,6 +70,10 @@ class NotificationService {
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    if (!await getNotificationsEnabled()) {
+      return;
+    }
+
     final title = message.notification?.title ?? 'تنبيه';
     final body = message.notification?.body ?? '';
     await _showNotification(title, body);
@@ -63,10 +81,16 @@ class NotificationService {
   }
 
   Future<void> handleBackgroundMessage(RemoteMessage message) async {
+    if (!await getNotificationsEnabled()) {
+      return;
+    }
     await _saveNotification(message);
   }
 
   Future<void> _showNotification(String title, String body) async {
+    if (!await getNotificationsEnabled()) {
+      return;
+    }
     const androidDetails = AndroidNotificationDetails(
       'order_status_channel',
       'Order Status Updates',
@@ -86,6 +110,9 @@ class NotificationService {
   }
 
   Future<void> _saveNotification(RemoteMessage message) async {
+    if (!await getNotificationsEnabled()) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final notifications = prefs.getStringList(_notificationsListKey) ?? [];
     final unreadCount = prefs.getInt(_unreadCountKey) ?? 0;
@@ -108,7 +135,12 @@ class NotificationService {
   Future<void> setNotificationsEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_notificationsEnabledKey, enabled);
-    if (enabled) await _requestPermission();
+    if (enabled) {
+      await _requestPermission();
+      _startForegroundListener();
+    } else {
+      await _stopForegroundListener();
+    }
   }
 
   Future<bool> getNotificationsEnabled() async {
@@ -146,6 +178,9 @@ class NotificationService {
     required String userEmail,
     required String langCode,
   }) async {
+    if (!await getNotificationsEnabled()) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final orders = await ApiService().getOrders(userEmail: userEmail);
     final storedStatuses = prefs.getString('order_statuses') ?? '{}';
