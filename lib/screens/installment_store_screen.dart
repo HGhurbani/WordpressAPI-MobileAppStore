@@ -8,6 +8,7 @@ import '../models/category.dart';
 import '../models/product.dart';
 import '../widgets/product_card.dart';
 import 'product_list_screen.dart';
+import '../widgets/home_card_category.dart';
 
 class InstallmentStoreScreen extends StatefulWidget {
   const InstallmentStoreScreen({Key? key}) : super(key: key);
@@ -16,9 +17,13 @@ class InstallmentStoreScreen extends StatefulWidget {
   State<InstallmentStoreScreen> createState() => _InstallmentStoreScreenState();
 }
 
-class _InstallmentStoreScreenState extends State<InstallmentStoreScreen> {
+class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
+    with AutomaticKeepAliveClientMixin {
   final ApiService _api = ApiService();
   late Future<List<Category>> _futureCategories;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -29,6 +34,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final language = Provider.of<LocaleProvider>(context).locale.languageCode;
     final isArabic = language == 'ar';
 
@@ -212,64 +218,16 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen> {
         }
         final categories = snapshot.data!;
         return SizedBox(
-          height: 120,
+          height: 140,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             itemCount: categories.length,
             itemBuilder: (context, index) {
-              final category = categories[index];
-              final splashColor = const Color(0xFF6FE0DA).withOpacity(0.2);
-              final highlightColor = const Color(0xFF6FE0DA).withOpacity(0.1);
-              return Material(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  splashColor: splashColor,
-                  highlightColor: highlightColor,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProductListScreen(
-                          categoryId: category.id,
-                          showInstallmentOnly: true,
-                          titleAr: 'متجر التقسيط',
-                          titleEn: 'Installment Store',
-                          searchHintAr: 'ابحث عن عروض التقسيط...',
-                          searchHintEn: 'Search for installment deals...',
-                        ),
-                      ),
-                    );
-                    HapticFeedback.lightImpact();
-                  },
-                  child: Container(
-                    width: 100,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.withOpacity(0.15)),
-                    ),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          category.name,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF1A2543),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              return HomeCategoryCard(
+                category: categories[index],
+                showInstallmentOnly: true,
+                showCashOnly: false,
               );
             },
           ),

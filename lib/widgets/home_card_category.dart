@@ -4,8 +4,10 @@ import '../screens/product_list_screen.dart';
 
 class HomeCategoryCard extends StatelessWidget {
   final Category category;
+  final bool? showInstallmentOnly;
+  final bool? showCashOnly;
 
-  const HomeCategoryCard({Key? key, required this.category}) : super(key: key);
+  const HomeCategoryCard({Key? key, required this.category, this.showInstallmentOnly, this.showCashOnly}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +19,9 @@ class HomeCategoryCard extends StatelessWidget {
           MaterialPageRoute(
             builder: (ctx) => ProductListScreen(
               categoryId: category.id,
-              showCashOnly: true,
+              // default behavior kept: cash-only when flags not provided
+              showCashOnly: showCashOnly ?? (showInstallmentOnly == true ? false : true),
+              showInstallmentOnly: showInstallmentOnly ?? false,
             ),
           ),
         ),
