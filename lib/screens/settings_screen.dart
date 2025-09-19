@@ -85,6 +85,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _isLoading = false;
         });
         return;
+      } else if (e.toString().contains('user_id_missing')) {
+        if (!mounted) return;
+        _showSnackBar(
+          isAr
+              ? 'لم يتم العثور على معرف المستخدم. يرجى تسجيل الخروج ثم تسجيل الدخول مرة أخرى لإعادة المزامنة.'
+              : 'User ID is missing. Please log out and log in again to refresh your data.',
+          Colors.orange,
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
       }
     }
 

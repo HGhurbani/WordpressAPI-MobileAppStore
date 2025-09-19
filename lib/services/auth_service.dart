@@ -24,16 +24,25 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance(); //moved here
+      final prefs = await SharedPreferences.getInstance();
+      final user = User.fromJson(data);
 
-      String? email = data['email']; // Assuming email is part of the response
+      if (user.id != null) {
+        await prefs.setInt('user_id', user.id!);
+      } else {
+        await prefs.remove('user_id');
+      }
+
+      String? email = data['email'] ?? data['user_email'];
+      final String? normalizedEmail =
+          email ?? (user.email.isNotEmpty ? user.email : null);
 
       // Get and update FCM token
       String? fcmToken = await prefs.getString('fcm_token');
-      if (fcmToken != null && email != null) { //added email check to avoid null error
-        await ApiService().updateFcmToken(email, fcmToken);
+      if (fcmToken != null && normalizedEmail != null) {
+        await ApiService().updateFcmToken(normalizedEmail, fcmToken);
       }
-      return User.fromJson(data);
+      return user;
     } else {
       final errorData = jsonDecode(response.body);
       throw Exception(errorData['message'] ?? "Login failed with status ${response.statusCode}");
