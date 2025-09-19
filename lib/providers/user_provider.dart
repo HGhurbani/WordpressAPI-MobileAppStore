@@ -17,7 +17,11 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('user_id', newUser.id ?? 0);
+    if (newUser.id != null) {
+      await prefs.setInt('user_id', newUser.id!);
+    } else {
+      await prefs.remove('user_id');
+    }
     await prefs.setString('user_token', newUser.token);
     await prefs.setString('user_name', newUser.username);
     await prefs.setString('user_email', newUser.email);
