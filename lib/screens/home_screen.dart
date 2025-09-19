@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -23,12 +25,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
   final apiService = ApiService();
   Future<List<Category>> _futureCategories = Future.value(const []);
   final ValueNotifier<int> _notificationCount = ValueNotifier<int>(0);
+  late final LocaleProvider _localeProvider;
+  late final UserProvider _userProvider;
+  StreamSubscription<void>? _notificationSubscription;
   final List<int> topRequestedProductIdsAr = [12226, 12261, 12245, 12762];
   final List<int> topRequestedProductIdsEn = [12902, 13310, 13325, 12835];
 
@@ -43,6 +49,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   @override
   void initState() {
     super.initState();
+    _localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+    _userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    _userProvider.addListener(_handleUserChanged);
     _welcomeAnimationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -61,12 +71,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       curve: Curves.easeOutCubic,
     );
 
-    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     _futureCategories =
-        apiService.getCategories(language: localeProvider.locale.languageCode);
+        apiService.getCategories(language: _localeProvider.locale.languageCode);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _startNotificationPolling();
+      if (!mounted) return;
+      await _updateNotificationSubscription();
       _startAnimations();
       await _checkFirstTime(); // ← اجعلها async
     });
@@ -107,27 +117,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   @override
   void dispose() {
+    _userProvider.removeListener(_handleUserChanged);
+    _cancelNotificationSubscription(resetCount: false);
     _welcomeAnimationController.dispose();
     _sectionsAnimationController.dispose();
     _scrollController.dispose();
+    _notificationCount.dispose();
     super.dispose();
   }
 
-  void _startNotificationPolling() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-    final user = userProvider.user;
+  void _handleUserChanged() {
+    _updateNotificationSubscription();
+  }
 
-    if (user != null && user.email != null) {
-      Stream.periodic(const Duration(seconds: 15)).listen((_) async {
-        await NotificationService().checkOrderStatusUpdates(
-          userEmail: user.email!,
-          langCode: localeProvider.locale.languageCode,
-        );
-        final count = await NotificationService().getUnreadCount();
-        _notificationCount.value = count;
-      });
+  Future<void> _updateNotificationSubscription() async {
+    final userEmail = _userProvider.user?.email;
+    if (userEmail == null || userEmail.isEmpty) {
+      _cancelNotificationSubscription();
+      return;
     }
+
+    if (_notificationSubscription != null) {
+      return;
+    }
+
+    final count = await NotificationService().getUnreadCount();
+    if (!mounted) return;
+    _notificationCount.value = count;
+    _notificationSubscription = _startNotificationPolling();
+  }
+
+  void _cancelNotificationSubscription({bool resetCount = true}) {
+    _notificationSubscription?.cancel();
+    _notificationSubscription = null;
+    if (resetCount && mounted) {
+      _notificationCount.value = 0;
+    }
+  }
+
+  StreamSubscription<void>? _startNotificationPolling() {
+    final userEmail = _userProvider.user?.email;
+
+    if (userEmail == null || userEmail.isEmpty) {
+      return null;
+    }
+
+    return Stream<void>.periodic(const Duration(seconds: 15))
+        .asyncMap((_) async {
+      final currentUserEmail = _userProvider.user?.email;
+      if (currentUserEmail == null || currentUserEmail.isEmpty) {
+        return;
+      }
+
+      await NotificationService().checkOrderStatusUpdates(
+        userEmail: currentUserEmail,
+        langCode: _localeProvider.locale.languageCode,
+      );
+      final count = await NotificationService().getUnreadCount();
+      if (!mounted) return;
+      _notificationCount.value = count;
+    }).listen((_) {});
   }
 
   void _loadData(String language) {
@@ -710,18 +759,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         _buildIconWithBackground(Icons.notifications, () {
           Navigator.pushNamed(context, '/notifications').then((_) async {
             final count = await NotificationService().getUnreadCount();
+            if (!mounted) return;
             _notificationCount.value = count;
           });
           NotificationService().markAllAsRead();
+          if (mounted) {
+            _notificationCount.value = 0;
+          }
         }),
         Positioned(
           right: 0,
           top: 0,
-          child: StreamBuilder<int>(
-            stream: Stream.periodic(const Duration(seconds: 2))
-                .asyncMap((_) => NotificationService().getUnreadCount()),
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
+          child: ValueListenableBuilder<int>(
+            valueListenable: _notificationCount,
+            builder: (context, count, _) {
               if (count == 0) return const SizedBox();
 
               return Container(
