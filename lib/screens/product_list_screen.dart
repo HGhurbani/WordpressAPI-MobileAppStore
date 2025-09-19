@@ -8,8 +8,26 @@ import '../providers/locale_provider.dart';
 class ProductListScreen extends StatefulWidget {
   final int? categoryId;
   final String? sortBy; // ← أضفنا هذا السطر لدعم الفرز
+  final bool showInstallmentOnly;
+  final String? titleAr;
+  final String? titleEn;
+  final String? searchHintAr;
+  final String? searchHintEn;
+  final String? noResultsTextAr;
+  final String? noResultsTextEn;
 
-  const ProductListScreen({Key? key, this.categoryId, this.sortBy}) : super(key: key);
+  const ProductListScreen({
+    Key? key,
+    this.categoryId,
+    this.sortBy,
+    this.showInstallmentOnly = false,
+    this.titleAr,
+    this.titleEn,
+    this.searchHintAr,
+    this.searchHintEn,
+    this.noResultsTextAr,
+    this.noResultsTextEn,
+  }) : super(key: key);
 
   @override
   State<ProductListScreen> createState() => _ProductListScreenState();
@@ -58,9 +76,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
     // تطبيق الفرز إذا طلب
     final sorted = _applySorting(products);
 
+    final filteredAll = _applyInstallmentFilter(sorted);
+
     setState(() {
-      _allProducts = sorted;
-      _filteredProducts = _applySearch(_searchController.text);
+      _allProducts = filteredAll;
+      _filteredProducts = _applySearch(
+        _searchController.text,
+        baseList: filteredAll,
+      );
       _isLoading = false;
       _hasMore = products.length == _perPage;
     });
@@ -78,9 +101,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     if (more.isNotEmpty) {
       final sorted = _applySorting(more);
+      final filteredMore = _applyInstallmentFilter(sorted);
 
       setState(() {
-        _allProducts.addAll(sorted);
+        _allProducts.addAll(filteredMore);
         _filteredProducts = _applySearch(_searchController.text);
         _hasMore = more.length == _perPage;
       });
@@ -98,9 +122,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return products;
   }
 
-  List<Product> _applySearch(String query) {
-    if (query.isEmpty) return List.from(_allProducts);
-    return _allProducts.where((p) => p.name.toLowerCase().contains(query.toLowerCase())).toList();
+  List<Product> _applyInstallmentFilter(List<Product> products) {
+    if (!widget.showInstallmentOnly) return products;
+    return products
+        .where((product) => product.shortDescription.trim().isNotEmpty)
+        .toList();
+  }
+
+  List<Product> _applySearch(String query, {List<Product>? baseList}) {
+    final source = baseList ?? _allProducts;
+    if (query.isEmpty) return List<Product>.from(source);
+    return source.where((p) => p.name.toLowerCase().contains(query.toLowerCase())).toList();
   }
 
   void _filterProducts(String query) {
@@ -110,9 +142,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
   @override
   Widget build(BuildContext context) {
     final isAr = _language == 'ar';
-    final appBarTitle = isAr ? "المنتجات" : "Products";
-    final searchHint = isAr ? "ابحث عن منتج..." : "Search for product...";
-    final noResults = isAr ? "لا توجد نتائج" : "No results found";
+    final appBarTitle = isAr
+        ? (widget.titleAr ?? "المنتجات")
+        : (widget.titleEn ?? "Products");
+    final searchHint = isAr
+        ? (widget.searchHintAr ?? "ابحث عن منتج...")
+        : (widget.searchHintEn ?? "Search for product...");
+    final noResults = isAr
+        ? (widget.noResultsTextAr ?? "لا توجد نتائج")
+        : (widget.noResultsTextEn ?? "No results found");
 
     return Scaffold(
       appBar: AppBar(
