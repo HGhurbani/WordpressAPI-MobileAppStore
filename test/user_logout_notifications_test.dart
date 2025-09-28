@@ -3,7 +3,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:creditphoneqa/models/user.dart';
 import 'package:creditphoneqa/providers/user_provider.dart';
+import 'package:creditphoneqa/services/api_service.dart';
 import 'package:creditphoneqa/services/notification_service.dart';
+
+class _FakeApiService extends ApiService {
+  bool unregisterCalled = false;
+
+  @override
+  Future<bool> unregisterFcmToken(String email) async {
+    unregisterCalled = true;
+    return true;
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +32,16 @@ void main() {
       'user_phone': '123456',
     });
 
-    final provider = UserProvider();
+    var deleteTokenCalls = 0;
+    final fakeApi = _FakeApiService();
+    final notificationService = NotificationService(
+      apiService: fakeApi,
+      deleteTokenOverride: () async {
+        deleteTokenCalls++;
+      },
+    );
+
+    final provider = UserProvider(notificationService: notificationService);
     provider.setUser(
       User(
         id: 1,
@@ -35,7 +55,7 @@ void main() {
     await provider.logout();
 
     final prefs = await SharedPreferences.getInstance();
-    final notifications = await NotificationService().getAllNotifications();
+    final notifications = await notificationService.getAllNotifications();
 
     expect(provider.user, isNull);
     expect(notifications, isEmpty);
@@ -44,5 +64,7 @@ void main() {
     expect(prefs.containsKey('order_statuses'), isFalse);
     expect(prefs.containsKey('notifications_enabled'), isFalse);
     expect(prefs.containsKey('fcm_token'), isFalse);
+    expect(deleteTokenCalls, 1);
+    expect(fakeApi.unregisterCalled, isTrue);
   });
 }

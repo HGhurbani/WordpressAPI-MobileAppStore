@@ -12,8 +12,20 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotificationService {
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  NotificationService({
+    FirebaseMessaging? firebaseMessaging,
+    FlutterLocalNotificationsPlugin? localNotifications,
+    ApiService? apiService,
+    Future<void> Function()? deleteTokenOverride,
+  })  : _fcm = firebaseMessaging ?? FirebaseMessaging.instance,
+        _localNotifications = localNotifications ?? FlutterLocalNotificationsPlugin(),
+        _apiService = apiService ?? ApiService(),
+        _deleteTokenOverride = deleteTokenOverride;
+
+  final FirebaseMessaging _fcm;
+  final FlutterLocalNotificationsPlugin _localNotifications;
+  final ApiService _apiService;
+  final Future<void> Function()? _deleteTokenOverride;
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _notificationsListKey = 'notifications';
   static const String _unreadCountKey = 'unread_notifications';
@@ -70,6 +82,32 @@ class NotificationService {
   Future<void> _stopForegroundListener() async {
     await _foregroundSubscription?.cancel();
     _foregroundSubscription = null;
+  }
+
+  Future<void> logoutCleanup({String? email}) async {
+    await _stopForegroundListener();
+    await clearStoredData();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('fcm_token');
+
+    try {
+      if (_deleteTokenOverride != null) {
+        await _deleteTokenOverride!.call();
+      } else {
+        await _fcm.deleteToken();
+      }
+    } catch (e) {
+      print('Error deleting FCM token: $e');
+    }
+
+    if (email != null && email.isNotEmpty) {
+      try {
+        await _apiService.unregisterFcmToken(email);
+      } catch (e) {
+        print('Error unregistering FCM token: $e');
+      }
+    }
   }
 
   Future<void> _requestPermission() async {
@@ -197,7 +235,7 @@ class NotificationService {
       return;
     }
     final prefs = await SharedPreferences.getInstance();
-    final orders = await ApiService().getOrders(userEmail: userEmail);
+    final orders = await _apiService.getOrders(userEmail: userEmail);
     final storedStatuses = prefs.getString('order_statuses') ?? '{}';
     final Map<String, String> oldStatuses = Map<String, String>.from(json.decode(storedStatuses));
     final notifications = prefs.getStringList(_notificationsListKey) ?? [];
