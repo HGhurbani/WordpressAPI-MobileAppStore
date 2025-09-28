@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class UserProvider extends ChangeNotifier {
   User? _user;
@@ -56,6 +57,8 @@ class UserProvider extends ChangeNotifier {
     await prefs.remove('user_phone');
     await prefs.remove('saved_username');
     await prefs.remove('remember_me');
+    await NotificationService.clearStoredData();
+    await prefs.remove('fcm_token');
 
     _user = null;
     notifyListeners();
