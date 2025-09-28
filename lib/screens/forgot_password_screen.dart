@@ -16,6 +16,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   bool _isSuccessMessage = false; // Add this to differentiate message type
 
   Future<void> _resetPassword() async {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
+    final validationMessage =
+        isAr ? "الرجاء إدخال بريد إلكتروني صالح." : "Please enter a valid email address.";
+    final successMessage = isAr
+        ? "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك."
+        : "A password reset link has been sent to your email.";
+    final genericServerError = isAr
+        ? "فشل في إرسال البريد. تأكد من صحة الإيميل."
+        : "Failed to send the email. Please ensure the address is correct.";
+    final unexpectedErrorMessage = isAr
+        ? "حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً."
+        : "An unexpected error occurred. Please try again later.";
+    final serverErrorPrefix =
+        isAr ? "تعذّر إكمال الطلب: " : "Unable to complete the request: ";
+
     setState(() {
       _loading = true;
       _message = null;
@@ -27,7 +42,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     // Validate email format
     if (!RegExp(r"^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(email)) {
       setState(() {
-        _message = "الرجاء إدخال بريد إلكتروني صالح.";
+        _message = validationMessage;
         _isSuccessMessage = false;
         _loading = false;
       });
@@ -45,14 +60,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       if (response.statusCode == 200) {
         setState(() {
-          _message = "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك.";
+          _message = successMessage;
           _isSuccessMessage = true;
         });
       } else {
         final responseBody = json.decode(response.body);
-        String errorMessage = "فشل في إرسال البريد. تأكد من صحة الإيميل.";
-        if (responseBody['message'] != null) {
-          errorMessage = responseBody['message']; // Use message from API if available
+        String errorMessage = genericServerError;
+        final dynamic serverMessage = responseBody['message'];
+        if (serverMessage is String && serverMessage.isNotEmpty) {
+          errorMessage = '$serverErrorPrefix$serverMessage';
         }
         setState(() {
           _message = errorMessage;
@@ -61,7 +77,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
     } catch (e) {
       setState(() {
-        _message = "حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً.";
+        _message = unexpectedErrorMessage;
         _isSuccessMessage = false;
       });
     } finally {
