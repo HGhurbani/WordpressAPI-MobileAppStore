@@ -200,6 +200,39 @@ class ProfileScreen extends StatelessWidget {
 
     final user = userProvider.user!;
 
+    String? _extractInitial(String value) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+      final firstCodeUnit = trimmed.runes.first;
+      final firstCharacter = String.fromCharCode(firstCodeUnit);
+      return firstCharacter.toUpperCase();
+    }
+
+    String _deriveInitial() {
+      return _extractInitial(user.username) ??
+          _extractInitial(user.email) ??
+          '?';
+    }
+
+    String _deriveDisplayName() {
+      final trimmedUsername = user.username.trim();
+      if (trimmedUsername.isNotEmpty) {
+        return trimmedUsername;
+      }
+
+      final trimmedEmail = user.email.trim();
+      if (trimmedEmail.isNotEmpty) {
+        return trimmedEmail;
+      }
+
+      return isArabic ? 'صديقنا' : 'there';
+    }
+
+    final profileInitial = _deriveInitial();
+    final displayName = _deriveDisplayName();
+
     return ListView(
       padding: const EdgeInsets.all(20), // حشوة أكبر
       physics: const BouncingScrollPhysics(), // تأثير ارتداد عند التمرير
@@ -217,13 +250,13 @@ class ProfileScreen extends StatelessWidget {
                   radius: 45, // حجم أكبر للصورة الرمزية
                   backgroundColor: _accentColor, // اللون الثانوي للهوية
                   child: Text(
-                    user.username[0].toUpperCase(),
+                    profileInitial,
                     style: const TextStyle(fontSize: 36, color: Colors.white, fontWeight: FontWeight.bold), // خط أكبر وأسمك
                   ),
                 ),
                 const SizedBox(height: 16), // مسافة أكبر
                 Text(
-                  isArabic ? "مرحباً، ${user.username}!" : "Hello, ${user.username}!", // إضافة علامة تعجب
+                  isArabic ? "مرحباً، $displayName!" : "Hello, $displayName!", // إضافة علامة تعجب
                   style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8), // مسافة أكبر
