@@ -19,6 +19,21 @@ class NotificationService {
   static const String _unreadCountKey = 'unread_notifications';
   static StreamSubscription<RemoteMessage>? _foregroundSubscription;
 
+  /// Clears stored notification-related data from [SharedPreferences].
+  static Future<void> clearStoredData() async {
+    final prefs = await SharedPreferences.getInstance();
+    const keysToRemove = <String>[
+      _notificationsListKey,
+      _unreadCountKey,
+      _notificationsEnabledKey,
+      'order_statuses',
+    ];
+
+    for (final key in keysToRemove) {
+      await prefs.remove(key);
+    }
+  }
+
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
     final bool notificationsEnabled = prefs.getBool(_notificationsEnabledKey) ?? true;
