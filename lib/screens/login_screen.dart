@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -118,6 +121,60 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     return null;
   }
 
+  String _genericLoginErrorMessage(bool isAr) {
+    return isAr
+        ? 'حدث خطأ غير متوقع أثناء تسجيل الدخول. حاول مرة أخرى لاحقًا.'
+        : 'An unexpected error occurred while logging in. Please try again later.';
+  }
+
+  String _getFriendlyErrorMessage(dynamic error) {
+    final localeProvider =
+        Provider.of<LocaleProvider>(context, listen: false);
+    final bool isAr = localeProvider.locale.languageCode == 'ar';
+    final String fallbackMessage = _genericLoginErrorMessage(isAr);
+
+    if (error is SocketException) {
+      return isAr
+          ? 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.'
+          : 'Unable to connect to the server. Please check your internet connection.';
+    }
+
+    if (error is TimeoutException) {
+      return isAr
+          ? 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.'
+          : 'The connection timed out. Please try again.';
+    }
+
+    final String errorMessage =
+        error.toString().replaceFirst('Exception: ', '').trim();
+    final String normalizedError = errorMessage.toLowerCase();
+
+    if (normalizedError.contains('woocommerce_rest_invalid_credentials') ||
+        normalizedError.contains('incorrect username') ||
+        normalizedError.contains('incorrect password') ||
+        normalizedError.contains('invalid username') ||
+        normalizedError.contains('invalid email') ||
+        normalizedError.contains('jwt_auth_invalid_credentials') ||
+        normalizedError.contains('incorrect_password')) {
+      return isAr
+          ? 'بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من اسم المستخدم أو كلمة المرور.'
+          : 'The login details are incorrect. Please check your username or password.';
+    }
+
+    if (normalizedError.contains('woocommerce_rest_cannot') ||
+        normalizedError.contains('woocommerce') ||
+        normalizedError.contains('server error') ||
+        normalizedError.contains('internal server error') ||
+        normalizedError.contains('503') ||
+        normalizedError.contains('502')) {
+      return isAr
+          ? 'نواجه مشكلة في الخادم حالياً. يرجى المحاولة لاحقاً.'
+          : 'We are experiencing a server issue right now. Please try again later.';
+    }
+
+    return fallbackMessage;
+  }
+
   void _login() async {
     // Clear previous errors
     setState(() {
@@ -182,10 +239,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       // Error haptic feedback
       HapticFeedback.heavyImpact();
 
-      final isAr = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode == 'ar';
-      final errorMessage = isAr ? "فشل في تسجيل الدخول: $e" : "Login failed: $e";
-
-      _showErrorSnackBar(errorMessage);
+      if (mounted) {
+        final errorMessage = _getFriendlyErrorMessage(e);
+        _showErrorSnackBar(errorMessage);
+      }
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -193,7 +250,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
-  void _showErrorSnackBar(String message) {
+  void _showErrorSnackBar(String preparedMessage) {
+    final localeProvider =
+        Provider.of<LocaleProvider>(context, listen: false);
+    final bool isAr = localeProvider.locale.languageCode == 'ar';
+    final String message = preparedMessage.trim().isEmpty
+        ? _genericLoginErrorMessage(isAr)
+        : preparedMessage;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
