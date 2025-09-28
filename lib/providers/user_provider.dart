@@ -7,6 +7,10 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 
 class UserProvider extends ChangeNotifier {
+  UserProvider({NotificationService? notificationService})
+      : _notificationService = notificationService ?? NotificationService();
+
+  final NotificationService _notificationService;
   User? _user;
 
   User? get user => _user;
@@ -49,6 +53,9 @@ class UserProvider extends ChangeNotifier {
     }
   }
   Future<void> logout() async {
+    final email = _user?.email;
+    await _notificationService.logoutCleanup(email: email);
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_id');
     await prefs.remove('user_token');
@@ -57,8 +64,6 @@ class UserProvider extends ChangeNotifier {
     await prefs.remove('user_phone');
     await prefs.remove('saved_username');
     await prefs.remove('remember_me');
-    await NotificationService.clearStoredData();
-    await prefs.remove('fcm_token');
 
     _user = null;
     notifyListeners();

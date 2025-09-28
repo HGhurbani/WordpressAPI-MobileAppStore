@@ -334,4 +334,21 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       return false;
     }
   }
+
+  Future<bool> unregisterFcmToken(String email) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('https://creditphoneqatar.com/wp-json/app/v1/notifications/fcm'),
+        headers: const {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email,
+        }),
+      );
+
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('Error unregistering FCM token: $e');
+      return false;
+    }
+  }
 }
