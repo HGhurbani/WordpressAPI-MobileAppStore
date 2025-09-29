@@ -113,10 +113,45 @@ class ApiService {
     }
   }
 
-  Future<List<Product>> getProductsByIds(List<int> ids, {String language = "ar"}) async {
-    List<Product> products = [];
+  Future<List<Product>> getProductsByIds(
+    List<int> ids, {
+    String language = "ar",
+  }) async {
+    if (ids.isEmpty) {
+      return [];
+    }
 
-    for (int id in ids) {
+    try {
+      final response = await http.get(
+        AppConfig.buildBackendUri(
+          '/products',
+          queryParameters: {
+            'include': ids.join(','),
+            'lang': language,
+          },
+        ),
+        headers: _defaultHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final productsJson = _ensureList(data, fallbackKey: 'products');
+
+        return productsJson
+            .map((item) => Product.fromJson(item as Map<String, dynamic>))
+            .toList();
+      }
+
+      throw Exception(
+        'Failed to fetch products by ids: ${response.statusCode} ${response.body}',
+      );
+    } catch (error) {
+      print('Batch fetch failed, falling back to individual requests: $error');
+    }
+
+    final products = <Product>[];
+
+    for (final id in ids) {
       try {
         final product = await getProductById(id, language: language);
         products.add(product);

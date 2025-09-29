@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../firebase_options.dart';
 import '../services/api_service.dart';
 import '../models/order.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
   await NotificationService().handleBackgroundMessage(message);
 }
 
@@ -30,6 +35,7 @@ class NotificationService {
   static const String _notificationsListKey = 'notifications';
   static const String _unreadCountKey = 'unread_notifications';
   static StreamSubscription<RemoteMessage>? _foregroundSubscription;
+  StreamSubscription<String>? _tokenRefreshSubscription;
 
   /// Clears stored notification-related data from [SharedPreferences].
   static Future<void> clearStoredData() async {
@@ -67,6 +73,9 @@ class NotificationService {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
+    _tokenRefreshSubscription ??=
+        _fcm.onTokenRefresh.listen((token) => unawaited(_handleTokenRefresh(token)));
+
     if (notificationsEnabled) {
       _startForegroundListener();
     } else {
@@ -86,6 +95,8 @@ class NotificationService {
 
   Future<void> logoutCleanup({String? email}) async {
     await _stopForegroundListener();
+    await _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
     await clearStoredData();
 
     final prefs = await SharedPreferences.getInstance();
@@ -115,10 +126,24 @@ class NotificationService {
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       final token = await _fcm.getToken();
       if (token != null) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('fcm_token', token);
-        print('FCM Token: $token');
+        await _handleTokenRefresh(token);
       }
+    }
+  }
+
+  Future<void> _handleTokenRefresh(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('fcm_token', token);
+    final email = prefs.getString('user_email');
+
+    if (email == null || email.isEmpty) {
+      return;
+    }
+
+    try {
+      await _apiService.updateFcmToken(email, token);
+    } catch (e) {
+      print('Error updating FCM token on refresh: $e');
     }
   }
 
