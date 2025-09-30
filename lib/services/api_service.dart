@@ -198,8 +198,10 @@ class ApiService {
     required bool isNewCustomer,
     String? customerNote,
   }) async {
+    final isCashOrder = installmentType == 'cash';
+
     String orderNotes = "Installment Type: $installmentType\n";
-    if (customInstallment != null) {
+    if (!isCashOrder && customInstallment != null) {
       orderNotes += """
 Down Payment: ${customInstallment['downPayment']} QAR
 Remaining Amount: ${customInstallment['remainingAmount']} QAR
@@ -211,6 +213,13 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       orderNotes += "\n\nCustomer Note: $customerNote";
     }
 
+    final metaData = [
+      {'key': 'installment_type', 'value': installmentType},
+      {'key': 'is_new_customer', 'value': isNewCustomer},
+      if (!isCashOrder && customInstallment != null)
+        {'key': 'custom_installment', 'value': json.encode(customInstallment)},
+    ];
+
     final orderData = {
       'status': 'pending',
       'customer_note': orderNotes,
@@ -220,12 +229,7 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
         'phone': customerPhone,
       },
       'line_items': lineItems,
-      'meta_data': [
-        {'key': 'installment_type', 'value': installmentType},
-        {'key': 'is_new_customer', 'value': isNewCustomer},
-        if (customInstallment != null)
-          {'key': 'custom_installment', 'value': json.encode(customInstallment)},
-      ],
+      'meta_data': metaData,
     };
 
     final response = await http.post(
