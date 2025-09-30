@@ -5,6 +5,7 @@ import '../providers/cart_provider.dart';
 import '../providers/locale_provider.dart';
 import '../utils.dart';
 import '../models/product.dart'; // Make sure Product model is imported
+import 'checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -117,7 +118,7 @@ class CartScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                _buildCheckoutButton(context, checkoutText),
+                _buildCheckoutButton(context, checkoutText, cartProvider),
               ],
             ),
           ],
@@ -206,7 +207,8 @@ class CartScreen extends StatelessWidget {
   // Removed the _buildCartSummary method as it's no longer needed
 
   // --- Checkout Button ---
-  Widget _buildCheckoutButton(BuildContext context, String label) {
+  Widget _buildCheckoutButton(
+      BuildContext context, String label, CartProvider cartProvider) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       width: double.infinity,
@@ -220,7 +222,34 @@ class CartScreen extends StatelessWidget {
           shadowColor: Colors.black.withOpacity(0.2),
         ),
         onPressed: () {
-          Navigator.pushNamed(context, '/installment-options');
+          final items = cartProvider.items;
+          if (items.isEmpty) {
+            return;
+          }
+
+          final isCashOrder =
+              items.every((item) => item.product.shortDescription.trim().isEmpty);
+
+          if (isCashOrder) {
+            final totalAmount = cartProvider.totalAmount;
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CheckoutScreen(
+                  isCashOrder: true,
+                  totalPrice: totalAmount,
+                  downPayment: totalAmount,
+                  remainingAmount: 0,
+                  monthlyPayment: 0,
+                  numberOfInstallments: 0,
+                  isCustomPlan: false,
+                ),
+              ),
+            );
+          } else {
+            Navigator.pushNamed(context, '/installment-options');
+          }
         },
         child: Text(
           label,

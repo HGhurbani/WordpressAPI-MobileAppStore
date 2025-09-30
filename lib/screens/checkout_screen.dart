@@ -14,20 +14,22 @@ extension ContextExtensions on BuildContext {
 
 class CheckoutScreen extends StatefulWidget {
   final bool isCustomPlan;
+  final bool isCashOrder;
   final double totalPrice;
-  final double downPayment;
-  final double remainingAmount;
-  final double monthlyPayment;
-  final int numberOfInstallments;
+  final double? downPayment;
+  final double? remainingAmount;
+  final double? monthlyPayment;
+  final int? numberOfInstallments;
 
   const CheckoutScreen({
     Key? key,
-    required this.isCustomPlan,
+    this.isCustomPlan = false,
+    this.isCashOrder = false,
     required this.totalPrice,
-    required this.downPayment,
-    required this.remainingAmount,
-    required this.monthlyPayment,
-    required this.numberOfInstallments,
+    this.downPayment,
+    this.remainingAmount,
+    this.monthlyPayment,
+    this.numberOfInstallments,
   }) : super(key: key);
 
   @override
@@ -103,7 +105,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 _buildSectionHeader(isAr ? "ملخص الطلب" : "Order Summary"),
                 _buildOrderSummary(isAr, cartItems),
                 const SizedBox(height: 20),
-                _buildSectionHeader(isAr ? "تفاصيل الدفعة" : "Payment Details"),
+                if (!widget.isCashOrder)
+                  _buildSectionHeader(isAr ? "تفاصيل الدفعة" : "Payment Details"),
                 _buildPriceSummary(isAr),
                 const SizedBox(height: 30),
                 _loading
@@ -343,6 +346,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildPriceSummary(bool isAr) {
+    final planTypeLabel = widget.isCashOrder
+        ? (isAr ? "نقدي" : "Cash")
+        : widget.isCustomPlan
+            ? (isAr ? "مخصصة" : "Custom")
+            : (isAr ? "افتراضية" : "Default");
+
     return Container(
       padding: const EdgeInsets.all(20), // More padding
       decoration: BoxDecoration(
@@ -353,13 +362,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _summaryRowText(isAr ? "نوع الخطة" : "Plan Type", widget.isCustomPlan ? (isAr ? "مخصصة" : "Custom") : (isAr ? "افتراضية" : "Default")),
-          _summaryRow(isAr ? "المبلغ المتبقي" : "Remaining Amount", widget.remainingAmount),
-          _summaryRow(isAr ? "عدد الأقساط" : "Number of Installments", widget.numberOfInstallments.toDouble()),
-          _summaryRow(isAr ? "قيمة كل قسط" : "Monthly Installment", widget.monthlyPayment),
+          _summaryRowText(isAr ? "نوع الخطة" : "Plan Type", planTypeLabel),
+          if (!widget.isCashOrder && widget.remainingAmount != null)
+            _summaryRow(
+              isAr ? "المبلغ المتبقي" : "Remaining Amount",
+              widget.remainingAmount!,
+            ),
+          if (!widget.isCashOrder && widget.numberOfInstallments != null)
+            _summaryRow(
+              isAr ? "عدد الأقساط" : "Number of Installments",
+              widget.numberOfInstallments!.toDouble(),
+            ),
+          if (!widget.isCashOrder && widget.monthlyPayment != null)
+            _summaryRow(
+              isAr ? "قيمة كل قسط" : "Monthly Installment",
+              widget.monthlyPayment!,
+            ),
           _summaryRow(isAr ? "الإجمالي الكلي" : "Total Amount", widget.totalPrice),
           const Divider(height: 25, thickness: 1.5, color: Colors.black12), // More prominent divider
-          _summaryRow(isAr ? "الدفعة الأولى" : "Down Payment", widget.downPayment, isTotal: true),
+          _summaryRow(
+            widget.isCashOrder
+                ? (isAr ? "المبلغ المستحق" : "Amount Due")
+                : (isAr ? "الدفعة الأولى" : "Down Payment"),
+            widget.downPayment ?? widget.totalPrice,
+            isTotal: true,
+          ),
         ],
       ),
     );
@@ -584,15 +611,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
 
+      final installmentType = widget.isCashOrder
+          ? 'cash'
+          : (widget.isCustomPlan ? 'custom' : 'default');
+
       await _apiService.createOrder(
         customerName: customerName,
         customerEmail: customerEmail,
         customerPhone: customerPhone,
         lineItems: lineItems,
-        installmentType: widget.isCustomPlan ? "custom" : "default",
+        installmentType: installmentType,
         isNewCustomer: !wasLoggedIn,
         customerNote: _noteController.text,
-        customInstallment: widget.isCustomPlan
+        customInstallment: widget.isCashOrder
+            ? null
+            : widget.isCustomPlan
             ? {
           'downPayment': widget.downPayment,
           'remainingAmount': widget.remainingAmount,
