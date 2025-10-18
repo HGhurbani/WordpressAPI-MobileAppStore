@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen>
   final ValueNotifier<int> _notificationCount = ValueNotifier<int>(0);
   late final LocaleProvider _localeProvider;
   late final UserProvider _userProvider;
-  StreamSubscription<void>? _notificationSubscription;
+  StreamSubscription<int>? _notificationSubscription;
   final List<int> topRequestedProductIdsAr = [12226, 12261, 12245, 12762];
   final List<int> topRequestedProductIdsEn = [12902, 13310, 13325, 12835];
 
@@ -137,14 +137,25 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    if (_notificationSubscription != null) {
+    final service = NotificationService();
+    final notificationsEnabled = await service.getNotificationsEnabled();
+    if (!notificationsEnabled) {
+      _cancelNotificationSubscription();
       return;
     }
 
-    final count = await NotificationService().getUnreadCount();
+    if (_notificationSubscription != null) {
+      await service.refreshUnreadCount();
+      return;
+    }
+
+    final count = await service.getUnreadCount();
     if (!mounted) return;
     _notificationCount.value = count;
-    _notificationSubscription = _startNotificationPolling();
+    if (_notificationSubscription == null) {
+      _notificationSubscription = _startNotificationListener(service);
+    }
+    await service.refreshUnreadCount();
   }
 
   void _cancelNotificationSubscription({bool resetCount = true}) {
@@ -155,28 +166,11 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  StreamSubscription<void>? _startNotificationPolling() {
-    final userEmail = _userProvider.user?.email;
-
-    if (userEmail == null || userEmail.isEmpty) {
-      return null;
-    }
-
-    return Stream<void>.periodic(const Duration(seconds: 15))
-        .asyncMap((_) async {
-      final currentUserEmail = _userProvider.user?.email;
-      if (currentUserEmail == null || currentUserEmail.isEmpty) {
-        return;
-      }
-
-      await NotificationService().checkOrderStatusUpdates(
-        userEmail: currentUserEmail,
-        langCode: _localeProvider.locale.languageCode,
-      );
-      final count = await NotificationService().getUnreadCount();
+  StreamSubscription<int>? _startNotificationListener(NotificationService service) {
+    return service.unreadCountStream.listen((count) {
       if (!mounted) return;
       _notificationCount.value = count;
-    }).listen((_) {});
+    });
   }
 
   void _loadData(String language) {

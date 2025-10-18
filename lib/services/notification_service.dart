@@ -31,6 +31,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications;
   final ApiService _apiService;
   final Future<void> Function()? _deleteTokenOverride;
+  static final StreamController<int> _unreadCountController = StreamController<int>.broadcast();
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _notificationsListKey = 'notifications';
   static const String _unreadCountKey = 'unread_notifications';
@@ -207,7 +208,9 @@ class NotificationService {
 
     notifications.insert(0, jsonEncode(notification));
     await prefs.setStringList(_notificationsListKey, notifications);
-    await prefs.setInt(_unreadCountKey, unreadCount + 1);
+    final updatedCount = unreadCount + 1;
+    await prefs.setInt(_unreadCountKey, updatedCount);
+    _unreadCountController.add(updatedCount);
   }
 
   Future<void> setNotificationsEnabled(bool enabled) async {
@@ -237,6 +240,13 @@ class NotificationService {
     return prefs.getInt(_unreadCountKey) ?? 0;
   }
 
+  Stream<int> get unreadCountStream => _unreadCountController.stream;
+
+  Future<void> refreshUnreadCount() async {
+    final count = await getUnreadCount();
+    _unreadCountController.add(count);
+  }
+
   Future<void> markAllAsRead() async {
     final prefs = await SharedPreferences.getInstance();
     final notifications = prefs.getStringList(_notificationsListKey) ?? [];
@@ -249,6 +259,7 @@ class NotificationService {
 
     await prefs.setStringList(_notificationsListKey, updated);
     await prefs.setInt(_unreadCountKey, 0);
+    _unreadCountController.add(0);
   }
 
   // 🆕 تتبع تغييرات الطلبات يدويًا
@@ -302,6 +313,7 @@ class NotificationService {
     await prefs.setStringList(_notificationsListKey, notifications);
     await prefs.setInt(_unreadCountKey, unreadCount);
     await prefs.setString('order_statuses', json.encode(oldStatuses));
+    _unreadCountController.add(unreadCount);
   }
 
   String _translateStatus(String status, String langCode) {
