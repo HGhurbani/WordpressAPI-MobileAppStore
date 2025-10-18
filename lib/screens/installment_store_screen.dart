@@ -76,16 +76,16 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
             ),
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.pushNamed(context, '/installment-options');
-            HapticFeedback.lightImpact();
-          },
-          label: Text(isArabic ? 'خصص خطتك' : 'Customize Plan'),
-          icon: const Icon(Icons.tune_rounded),
-          backgroundColor: const Color(0xFF6FE0DA),
-          foregroundColor: const Color(0xFF1A2543),
-        ),
+        // floatingActionButton: FloatingActionButton.extended(
+        //   onPressed: () {
+        //     Navigator.pushNamed(context, '/installment-options');
+        //     HapticFeedback.lightImpact();
+        //   },
+        //   label: Text(isArabic ? 'خصص خطتك' : 'Customize Plan'),
+        //   icon: const Icon(Icons.tune_rounded),
+        //   backgroundColor: const Color(0xFF6FE0DA),
+        //   foregroundColor: const Color(0xFF1A2543),
+        // ),
       ),
     );
   }
