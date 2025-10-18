@@ -16,6 +16,9 @@ import 'firebase_options.dart';
 import 'theme.dart';
 
 Future<void> _loadEnvironment() async {
+  if (kReleaseMode) {
+    return;
+  }
   try {
     await dotenv.load(fileName: '.env');
   } on FlutterError catch (error) {
