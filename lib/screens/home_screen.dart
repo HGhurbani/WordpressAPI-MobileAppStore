@@ -1477,37 +1477,7 @@ class _HomeScreenState extends State<HomeScreen>
               final fetched = snapshot.data ?? const <Product>[];
               final cashProducts = fetched.where((p) => p.shortDescription.trim().isEmpty).toList();
               if (cashProducts.isEmpty) {
-                return Container(
-                  height: 150,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.grey.withOpacity(0.2),
-                    ),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          color: Colors.grey.withOpacity(0.5),
-                          size: 32,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          noProductsForCategoryText,
-                          style: TextStyle(
-                            color: Colors.grey.withOpacity(0.7),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                return const SizedBox.shrink();
               }
               final products = cashProducts;
               return SizedBox(
