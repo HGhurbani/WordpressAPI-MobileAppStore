@@ -18,19 +18,25 @@ class UserProvider extends ChangeNotifier {
   bool get isLoggedIn => _user != null;
 
   void setUser(User newUser) async {
-    _user = newUser;
+    final prefs = await SharedPreferences.getInstance();
+    final int? persistedId =
+        newUser.id ?? prefs.getInt('user_id') ?? _user?.id;
+    final userWithId = (persistedId != null && newUser.id != persistedId)
+        ? newUser.copyWith(id: persistedId)
+        : newUser;
+
+    _user = userWithId;
     notifyListeners();
 
-    final prefs = await SharedPreferences.getInstance();
-    if (newUser.id != null) {
-      await prefs.setInt('user_id', newUser.id!);
+    if (userWithId.id != null) {
+      await prefs.setInt('user_id', userWithId.id!);
     } else {
       await prefs.remove('user_id');
     }
-    await prefs.setString('user_token', newUser.token);
-    await prefs.setString('user_name', newUser.username);
-    await prefs.setString('user_email', newUser.email);
-    await prefs.setString('user_phone', newUser.phone); // ✅ احفظ رقم الهاتف
+    await prefs.setString('user_token', userWithId.token);
+    await prefs.setString('user_name', userWithId.username);
+    await prefs.setString('user_email', userWithId.email);
+    await prefs.setString('user_phone', userWithId.phone); // ✅ احفظ رقم الهاتف
   }
 
   Future<void> loadUserFromPrefs() async {
@@ -43,13 +49,14 @@ class UserProvider extends ChangeNotifier {
 
 
     if (token != null && username != null && email != null) {
-      setUser(User(
+      final restoredUser = User(
         id: userId,
         token: token,
         username: username,
         email: email,
         phone: phone ?? '',
-      ));
+      );
+      setUser(restoredUser);
     }
   }
   Future<void> logout() async {

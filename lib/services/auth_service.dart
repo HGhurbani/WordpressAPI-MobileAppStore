@@ -25,17 +25,26 @@ class AuthService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final prefs = await SharedPreferences.getInstance();
-      final user = User.fromJson(data);
+      var user = User.fromJson(data);
+
+      String? email = data['email'] ?? data['user_email'];
+      final String? normalizedEmail =
+          email ?? (user.email.isNotEmpty ? user.email : null);
+
+      final bool isIdMissing = user.id == null || user.id == 0;
+      if (isIdMissing && normalizedEmail != null) {
+        final fetchedId =
+            await ApiService().fetchCustomerIdByEmail(normalizedEmail);
+        if (fetchedId != null) {
+          user = user.copyWith(id: fetchedId);
+        }
+      }
 
       if (user.id != null) {
         await prefs.setInt('user_id', user.id!);
       } else {
         await prefs.remove('user_id');
       }
-
-      String? email = data['email'] ?? data['user_email'];
-      final String? normalizedEmail =
-          email ?? (user.email.isNotEmpty ? user.email : null);
 
       // Get and update FCM token
       String? fcmToken = await prefs.getString('fcm_token');

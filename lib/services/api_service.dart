@@ -356,6 +356,43 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
     }
   }
 
+  Future<int?> fetchCustomerIdByEmail(String email) async {
+    final response = await http.get(
+      _uri(
+        '/customers',
+        queryParameters: {
+          'email': email,
+          'per_page': '1',
+        },
+      ),
+      headers: _defaultHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to fetch customer by email: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+    final customers = _ensureList(data, fallbackKey: 'customers');
+    if (customers.isEmpty) {
+      return null;
+    }
+
+    final dynamic firstCustomer = customers.first;
+    if (firstCustomer is! Map) {
+      throw Exception('Unexpected customer payload: $firstCustomer');
+    }
+
+    final customer = Map<String, dynamic>.from(firstCustomer as Map);
+    final dynamic idSource = customer['id'] ?? customer['ID'];
+    if (idSource is int) return idSource;
+    if (idSource is String) return int.tryParse(idSource);
+    if (idSource is double) return idSource.toInt();
+    return null;
+  }
+
   Future<bool> updateFcmToken(String email, String token) async {
     try {
       final response = await http.post(
