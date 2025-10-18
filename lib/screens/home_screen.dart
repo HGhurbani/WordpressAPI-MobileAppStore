@@ -1473,6 +1473,67 @@ class _HomeScreenState extends State<HomeScreen>
         }
 
         Widget buildProducts(List<Product> products) {
+          if (products.isEmpty) {
+            return const SizedBox.shrink();
+          }
+
+          if (products.length == 1) {
+            final product = products.first;
+            return SizedBox(
+              height: 290,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: TweenAnimationBuilder(
+                  duration: const Duration(milliseconds: 350),
+                  tween: Tween<double>(begin: 0, end: 1),
+                  builder: (context, double value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 15 * (1 - value)),
+                      child: Opacity(
+                        opacity: value,
+                        child: ProductCard(product: product),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+
+          if (products.length == 2) {
+            return SizedBox(
+              height: 290,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: List.generate(products.length * 2 - 1, (index) {
+                    if (index.isOdd) {
+                      return const SizedBox(width: 12);
+                    }
+                    final productIndex = index ~/ 2;
+                    return Expanded(
+                      child: TweenAnimationBuilder(
+                        duration: Duration(
+                            milliseconds: 300 + (productIndex * 50)),
+                        tween: Tween<double>(begin: 0, end: 1),
+                        builder: (context, double value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, 15 * (1 - value)),
+                            child: Opacity(
+                              opacity: value,
+                              child:
+                                  ProductCard(product: products[productIndex]),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            );
+          }
+
           return SizedBox(
             height: 290,
             child: ListView.builder(

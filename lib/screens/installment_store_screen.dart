@@ -351,6 +351,66 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
         }
 
         Widget buildProducts(List<Product> products) {
+          if (products.isEmpty) {
+            return const SizedBox.shrink();
+          }
+
+          if (products.length == 1) {
+            return SizedBox(
+              height: 290,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: TweenAnimationBuilder(
+                  duration: const Duration(milliseconds: 350),
+                  tween: Tween<double>(begin: 0, end: 1),
+                  builder: (context, double value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 15 * (1 - value)),
+                      child: Opacity(
+                        opacity: value,
+                        child: ProductCard(product: products.first),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+
+          if (products.length == 2) {
+            return SizedBox(
+              height: 290,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: List.generate(products.length * 2 - 1, (index) {
+                    if (index.isOdd) {
+                      return const SizedBox(width: 12);
+                    }
+                    final productIndex = index ~/ 2;
+                    return Expanded(
+                      child: TweenAnimationBuilder(
+                        duration: Duration(
+                            milliseconds: 300 + (productIndex * 50)),
+                        tween: Tween<double>(begin: 0, end: 1),
+                        builder: (context, double value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, 15 * (1 - value)),
+                            child: Opacity(
+                              opacity: value,
+                              child:
+                                  ProductCard(product: products[productIndex]),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            );
+          }
+
           return SizedBox(
             height: 290,
             child: ListView.builder(
@@ -358,11 +418,21 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: products.length,
               itemBuilder: (context, index) {
-                final product = products[index];
-                return Container(
-                  width: 160,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  child: ProductCard(product: product),
+                return TweenAnimationBuilder(
+                  duration: Duration(milliseconds: 300 + (index * 50)),
+                  tween: Tween<double>(begin: 0, end: 1),
+                  builder: (context, double value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 15 * (1 - value)),
+                      child: Opacity(
+                        opacity: value,
+                        child: SizedBox(
+                          width: 160,
+                          child: ProductCard(product: products[index]),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
