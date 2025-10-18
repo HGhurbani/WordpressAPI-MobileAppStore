@@ -118,11 +118,19 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
   }
 
   Future<void> _trackOrderStatusChanges(List<Order> orders) async {
+    if (!mounted) {
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final storedStatuses = prefs.getString('order_statuses') ?? '{}';
     final Map<String, String> oldStatuses = Map<String, String>.from(json.decode(storedStatuses));
     final notifications = prefs.getStringList('notifications') ?? [];
     int unreadCount = prefs.getInt('unread_notifications') ?? 0;
+
+    if (!mounted) {
+      return;
+    }
 
     final langCode = Localizations.localeOf(context).languageCode;
 
