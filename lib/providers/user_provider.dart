@@ -75,23 +75,31 @@ class UserProvider extends ChangeNotifier {
     _user = null;
     notifyListeners();
   }
-  Future<void> deleteAccount() async {
+  Future<bool> deleteAccount() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('user_id');
 
     if (userId == null) {
       debugPrint('No user ID found. Cannot delete.');
-      return;
+      return false;
     }
 
-    final success = await ApiService().deleteAccount(userId);
-    if (!success) {
-      debugPrint('خطأ أثناء حذف الحساب');
-    }
+    try {
+      final success = await ApiService().deleteAccount(userId);
+      if (!success) {
+        debugPrint('Failed to delete account from API.');
+        return false;
+      }
 
-    await prefs.clear();
-    _user = null;
-    notifyListeners();
+      await prefs.clear();
+      _user = null;
+      notifyListeners();
+      return true;
+    } catch (error, stackTrace) {
+      debugPrint('Exception while deleting account: $error');
+      debugPrint(stackTrace.toString());
+      rethrow;
+    }
   }
 
   Future<void> updateUser({

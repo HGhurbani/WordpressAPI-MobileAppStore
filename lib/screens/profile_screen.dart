@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
@@ -466,15 +467,45 @@ class ProfileScreen extends StatelessWidget {
     );
 
     if (confirm == true) {
-      await userProvider.deleteAccount();
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isArabic ? 'تم حذف الحساب بنجاح.' : 'Account deleted successfully.', style: const TextStyle(color: Colors.white)),
-          backgroundColor: _accentColor,
-        ),
-      );
-      Navigator.pushReplacementNamed(context, '/login'); // أو إلى الشاشة الرئيسية كزائر
+      try {
+        final success = await userProvider.deleteAccount();
+        if (!context.mounted) return;
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isArabic ? 'تم حذف الحساب بنجاح.' : 'Account deleted successfully.',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: _accentColor,
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/login'); // أو إلى الشاشة الرئيسية كزائر
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                isArabic ? 'تعذر حذف الحساب. حاول مرة أخرى لاحقًا.' : 'Unable to delete the account. Please try again later.',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red.shade600,
+            ),
+          );
+        }
+      } catch (error) {
+        debugPrint('Error while deleting account: $error');
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isArabic ? 'حدث خطأ غير متوقع أثناء حذف الحساب.' : 'An unexpected error occurred while deleting the account.',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red.shade600,
+          ),
+        );
+      }
     }
   }
 }
