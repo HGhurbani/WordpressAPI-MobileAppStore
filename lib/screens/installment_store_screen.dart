@@ -256,15 +256,33 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
     );
   }
 
-  Widget _buildSingleCategorySection(Category category, String language, bool isArabic) {
+  Widget _buildSingleCategorySection(
+      Category category, String language, bool isArabic) {
     final moreLabel = isArabic ? 'المزيد' : 'More';
-    final noProductsText = isArabic ? 'لا توجد منتجات لهذا التصنيف' : 'No products for this category';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
+
+    return FutureBuilder<List<Product>>(
+      future: _api.getProducts(
+        categoryId: category.id,
+        language: language,
+        perPage: 10,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const SizedBox.shrink();
+        }
+
+        final isWaiting = snapshot.connectionState == ConnectionState.waiting;
+        final fetched = snapshot.data ?? const <Product>[];
+        final installmentProducts = fetched
+            .where((p) => p.shortDescription.trim().isNotEmpty)
+            .toList();
+
+        if (!isWaiting && installmentProducts.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        Widget buildHeader() {
+          return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -294,63 +312,79 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
                     );
                     HapticFeedback.lightImpact();
                   },
-                  icon: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF6FE0DA)),
+                  icon: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: Color(0xFF6FE0DA),
+                  ),
                   label: Text(
                     moreLabel,
-                    style: const TextStyle(color: Color(0xFF6FE0DA), fontSize: 12),
+                    style:
+                        const TextStyle(color: Color(0xFF6FE0DA), fontSize: 12),
                   ),
                 ),
               ],
             ),
-          ),
-          FutureBuilder<List<Product>>(
-            future: _api.getProducts(categoryId: category.id, language: language, perPage: 10),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return SizedBox(
-                  height: 290,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: 4,
-                    itemBuilder: (context, index) => Container(
-                      width: 160,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Center(child: CircularProgressIndicator.adaptive()),
-                    ),
-                  ),
-                );
-              }
-              final fetched = snapshot.data ?? const <Product>[];
-              final installmentProducts = fetched.where((p) => p.shortDescription.trim().isNotEmpty).toList();
-              if (installmentProducts.isEmpty) {
-                return const SizedBox.shrink();
-              }
+          );
+        }
 
-              return SizedBox(
-                height: 290,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: installmentProducts.length,
-                  itemBuilder: (context, index) {
-                    final product = installmentProducts[index];
-                    return Container(
-                      width: 160,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ProductCard(product: product),
-                    );
-                  },
+        Widget buildSkeleton() {
+          return SizedBox(
+            height: 290,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: 4,
+              itemBuilder: (context, index) => Container(
+                width: 160,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-            },
+                child: const Center(
+                  child: CircularProgressIndicator.adaptive(),
+                ),
+              ),
+            ),
+          );
+        }
+
+        Widget buildProducts(List<Product> products) {
+          return SizedBox(
+            height: 290,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return Container(
+                  width: 160,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ProductCard(product: product),
+                );
+              },
+            ),
+          );
+        }
+
+        final body = isWaiting
+            ? buildSkeleton()
+            : buildProducts(installmentProducts);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(),
+              const SizedBox(height: 12),
+              body,
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

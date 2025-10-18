@@ -1089,24 +1089,23 @@ class _HomeScreenState extends State<HomeScreen>
           children: categories
               .map(
                 (category) => TweenAnimationBuilder(
-              duration: const Duration(milliseconds: 600),
-              tween: Tween<double>(begin: 0, end: 1),
-              builder: (context, double value, child) {
-                return Transform.translate(
-                  offset: Offset(0, 30 * (1 - value)),
-                  child: Opacity(
-                    opacity: value,
-                    child: _buildCategorySection(
-                      category,
-                      moreLabel: moreLabel,
-                      noProductsForCategoryText: noProductsForCategoryText,
-                      currentLanguage: currentLanguage,
-                    ),
-                  ),
-                );
-              },
-            ),
-          )
+                  duration: const Duration(milliseconds: 600),
+                  tween: Tween<double>(begin: 0, end: 1),
+                  builder: (context, double value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 30 * (1 - value)),
+                      child: Opacity(
+                        opacity: value,
+                        child: _buildCategorySection(
+                          category,
+                          moreLabel: moreLabel,
+                          currentLanguage: currentLanguage,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
               .toList(),
         );
       },
@@ -1350,40 +1349,40 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildCategorySection(Category category,
-      {required String currentLanguage,
-        required String moreLabel,
-        required String noProductsForCategoryText}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
+      {required String currentLanguage, required String moreLabel}) {
+    return FutureBuilder<List<Product>>(
+      future: apiService.getProducts(
+        categoryId: category.id,
+        language: currentLanguage,
+        perPage: 10,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const SizedBox.shrink();
+        }
+
+        final isWaiting = snapshot.connectionState == ConnectionState.waiting;
+        final fetched = snapshot.data ?? const <Product>[];
+        final cashProducts =
+            fetched.where((p) => p.shortDescription.trim().isEmpty).toList();
+
+        if (!isWaiting && cashProducts.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        Widget buildHeader() {
+          return Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 15),
             decoration: BoxDecoration(
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(8),
-
             ),
-
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    // Container(
-                    //   padding: const EdgeInsets.all(8),
-                    //   decoration: BoxDecoration(
-                    //     color: const Color(0xFF6FE0DA).withOpacity(0.2),
-                    //     borderRadius: BorderRadius.circular(8),
-                    //   ),
-                    //   child: const Icon(
-                    //     Icons.inventory_2_rounded,
-                    //     color: Color(0xFF1A2543),
-                    //     size: 20,
-                    //   ),
-                    // ),
                     const SizedBox(width: 12),
                     Text(
                       category.name,
@@ -1412,7 +1411,8 @@ class _HomeScreenState extends State<HomeScreen>
                     },
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: const Color(0xFF6FE0DA).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -1445,71 +1445,78 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          FutureBuilder<List<Product>>(
-            future: apiService.getProducts(categoryId: category.id, language: currentLanguage, perPage: 10),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return SizedBox(
-                  height: 290,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: 4,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        width: 160,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: CircularProgressIndicator.adaptive(),
-                        ),
-                      );
-                    },
+          );
+        }
+
+        Widget buildSkeleton() {
+          return SizedBox(
+            height: 290,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: 4,
+              itemBuilder: (context, index) {
+                return Container(
+                  width: 160,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator.adaptive(),
                   ),
                 );
-              }
-              // Cash-only: filter fetched products to cash items
-              final fetched = snapshot.data ?? const <Product>[];
-              final cashProducts = fetched.where((p) => p.shortDescription.trim().isEmpty).toList();
-              if (cashProducts.isEmpty) {
-                return const SizedBox.shrink();
-              }
-              final products = cashProducts;
-              return SizedBox(
-                height: 290,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    return TweenAnimationBuilder(
-                      duration: Duration(milliseconds: 300 + (index * 50)),
-                      tween: Tween<double>(begin: 0, end: 1),
-                      builder: (context, double value, child) {
-                        return Transform.translate(
-                          offset: Offset(0, 15 * (1 - value)),
-                          child: Opacity(
-                            opacity: value,
-                            child: SizedBox(
-                              width: 160,
-                              child: ProductCard(product: products[index]),
-                            ),
-                          ),
-                        );
-                      },
+              },
+            ),
+          );
+        }
+
+        Widget buildProducts(List<Product> products) {
+          return SizedBox(
+            height: 290,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                return TweenAnimationBuilder(
+                  duration: Duration(milliseconds: 300 + (index * 50)),
+                  tween: Tween<double>(begin: 0, end: 1),
+                  builder: (context, double value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, 15 * (1 - value)),
+                      child: Opacity(
+                        opacity: value,
+                        child: SizedBox(
+                          width: 160,
+                          child: ProductCard(product: products[index]),
+                        ),
+                      ),
                     );
                   },
-                ),
-              );
-            },
+                );
+              },
+            ),
+          );
+        }
+
+        final body = isWaiting
+            ? buildSkeleton()
+            : buildProducts(cashProducts);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildHeader(),
+              const SizedBox(height: 12),
+              body,
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
