@@ -328,21 +328,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
               final fetched = snapshot.data ?? const <Product>[];
               final installmentProducts = fetched.where((p) => p.shortDescription.trim().isNotEmpty).toList();
               if (installmentProducts.isEmpty) {
-                return Container(
-                  height: 150,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      noProductsText,
-                      style: TextStyle(color: Colors.grey.withOpacity(0.7), fontSize: 14),
-                    ),
-                  ),
-                );
+                return const SizedBox.shrink();
               }
 
               return SizedBox(
