@@ -50,6 +50,11 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
   Future<List<Order>> _loadOrdersAndTrackChanges() async {
     try {
       final userEmail = Provider.of<UserProvider>(context, listen: false).user?.email ?? "";
+
+      if (userEmail.isEmpty) {
+        return <Order>[];
+      }
+
       final orders = await ApiService().getOrders(userEmail: userEmail);
       await _trackOrderStatusChanges(orders);
       return orders;
