@@ -77,7 +77,6 @@ flutter:
     - assets/images/logo_login.png
     - assets/sounds/click.mp3
     - assets/sounds/delete.mp3
-    - .env
 
 
   fonts:
