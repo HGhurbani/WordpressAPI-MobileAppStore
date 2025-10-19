@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,11 +25,8 @@ class ApiService {
   }) {
     final headers = <String, String>{
       'Accept': 'application/json',
+      ...AppConfig.wooCommerceAuthHeaders,
     };
-
-    if (!kIsWeb) {
-      headers.addAll(AppConfig.wooCommerceAuthHeaders);
-    }
 
     if (includeJson) {
       headers['Content-Type'] = 'application/json';
@@ -65,16 +61,6 @@ class ApiService {
     throw Exception('Unexpected response format from backend: $payload');
   }
 
-  Map<String, dynamic> _ensureMap(dynamic payload, String context) {
-    if (payload is Map<String, dynamic>) {
-      return payload;
-    }
-    if (payload is Map) {
-      return Map<String, dynamic>.from(payload);
-    }
-    throw Exception('Unexpected $context payload: $payload');
-  }
-
   // جلب قائمة المنتجات مع دعم اللغة وفلترة السعر
   Future<List<Product>> getProducts({
     int? categoryId,
@@ -102,9 +88,7 @@ class ApiService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final productsJson = _ensureList(data, fallbackKey: 'products');
-      return productsJson
-          .map((item) => Product.fromJson(_ensureMap(item, 'product')))
-          .toList();
+      return productsJson.map((item) => Product.fromJson(item)).toList();
     } else {
       throw Exception("Failed to load products: ${response.body}");
     }
@@ -123,9 +107,7 @@ class ApiService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final categoriesJson = _ensureList(data, fallbackKey: 'categories');
-      return categoriesJson
-          .map((item) => Category.fromJson(_ensureMap(item, 'category')))
-          .toList();
+      return categoriesJson.map((item) => Category.fromJson(item)).toList();
     } else {
       throw Exception("Failed to load categories: ${response.body}");
     }
@@ -156,7 +138,7 @@ class ApiService {
         final productsJson = _ensureList(data, fallbackKey: 'products');
 
         return productsJson
-            .map((item) => Product.fromJson(_ensureMap(item, 'product')))
+            .map((item) => Product.fromJson(item as Map<String, dynamic>))
             .toList();
       }
 
@@ -286,7 +268,7 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       final data = jsonDecode(response.body);
       final ordersJson = _ensureList(data, fallbackKey: 'orders');
       final orders = ordersJson
-          .map((item) => Order.fromJson(_ensureMap(item, 'order')))
+          .map((item) => Order.fromJson(item as Map<String, dynamic>))
           .toList();
 
       return orders
