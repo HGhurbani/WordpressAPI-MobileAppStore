@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,8 +26,11 @@ class ApiService {
   }) {
     final headers = <String, String>{
       'Accept': 'application/json',
-      ...AppConfig.wooCommerceAuthHeaders,
     };
+
+    if (!kIsWeb) {
+      headers.addAll(AppConfig.wooCommerceAuthHeaders);
+    }
 
     if (includeJson) {
       headers['Content-Type'] = 'application/json';
