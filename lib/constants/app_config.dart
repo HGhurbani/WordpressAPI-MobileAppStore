@@ -24,9 +24,11 @@ class AppConfig {
   /// and fall back to a `--dart-define` flag so CI can inject secrets without
   /// creating files on disk.
   static String get consumerKey {
-    final envValue = dotenv.env['WOO_CONSUMER_KEY']?.trim();
-    if (envValue != null && envValue.isNotEmpty) {
-      return envValue;
+    if (dotenv.isInitialized) {
+      final envValue = dotenv.env['WOO_CONSUMER_KEY']?.trim();
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
     }
     return _consumerKeyFromDartDefine;
   }
@@ -37,9 +39,11 @@ class AppConfig {
   /// and fall back to a `--dart-define` flag so CI can inject secrets without
   /// creating files on disk.
   static String get consumerSecret {
-    final envValue = dotenv.env['WOO_CONSUMER_SECRET']?.trim();
-    if (envValue != null && envValue.isNotEmpty) {
-      return envValue;
+    if (dotenv.isInitialized) {
+      final envValue = dotenv.env['WOO_CONSUMER_SECRET']?.trim();
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
     }
     return _consumerSecretFromDartDefine;
   }
