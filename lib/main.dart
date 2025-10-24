@@ -20,7 +20,7 @@ Future<void> _loadEnvironment() async {
     return;
   }
   try {
-    await dotenv.maybeLoad(fileName: '.env');
+    await dotenv.load(fileName: '.env');
   } on FlutterError catch (error) {
     debugPrint('dotenv: ${error.message}');
   } catch (error, stackTrace) {
