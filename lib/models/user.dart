@@ -28,10 +28,84 @@ class User {
         (dataSection?['user_id']) ??
         (customerSection?['id']);
 
+    String? _normalizedString(dynamic value) {
+      if (value is String) {
+        final trimmed = value.trim();
+        if (trimmed.isNotEmpty) {
+          return trimmed;
+        }
+      }
+      return null;
+    }
+
+    String? _lookupFirstName() {
+      final billingSection = json['billing'] is Map
+          ? Map<String, dynamic>.from(json['billing'])
+          : null;
+      final dataBillingSection = dataSection?['billing'] is Map
+          ? Map<String, dynamic>.from(dataSection!['billing'])
+          : null;
+      final customerBillingSection = customerSection?['billing'] is Map
+          ? Map<String, dynamic>.from(customerSection!['billing'])
+          : null;
+
+      final firstNameSources = [
+        json['first_name'],
+        dataSection?['first_name'],
+        customerSection?['first_name'],
+        billingSection?['first_name'],
+        dataBillingSection?['first_name'],
+        customerBillingSection?['first_name'],
+      ];
+
+      for (final source in firstNameSources) {
+        final normalized = _normalizedString(source);
+        if (normalized != null) {
+          return normalized;
+        }
+      }
+      return null;
+    }
+
+    String? _lookupDisplayOrUsername() {
+      final displaySources = [
+        json['user_display_name'],
+        dataSection?['user_display_name'],
+        customerSection?['user_display_name'],
+      ];
+
+      for (final source in displaySources) {
+        final normalized = _normalizedString(source);
+        if (normalized != null) {
+          return normalized;
+        }
+      }
+
+      final usernameSources = [
+        json['username'],
+        dataSection?['username'],
+        customerSection?['username'],
+        json['user_nicename'],
+        json['user_login'],
+      ];
+
+      for (final source in usernameSources) {
+        final normalized = _normalizedString(source);
+        if (normalized != null) {
+          return normalized;
+        }
+      }
+
+      return null;
+    }
+
+    final resolvedName =
+        _lookupFirstName() ?? _lookupDisplayOrUsername() ?? '';
+
     return User(
       id: _parseId(idSource),
       token: json["token"] ?? "",
-      username: json["user_display_name"] ?? json["first_name"] ?? "",
+      username: resolvedName,
       email: json["user_email"] ?? json["email"] ?? "",
       phone: json["phone"] ?? json["billing"]?["phone"] ?? "",
     );
