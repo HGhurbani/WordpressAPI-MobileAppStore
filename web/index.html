@@ -18,21 +18,53 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Credit Phone Qatar">
 
-  <!-- iOS meta tags & icons -->
+  <!-- iOS meta tags محسنة -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="creditphoneqa">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Credit Phone Qatar">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- iOS icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icons/Icon-512.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>creditphoneqa</title>
+  <title>Credit Phone Qatar</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- تحسينات للـ iOS -->
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0175C2;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    
+    /* تحسينات للـ iOS Safari */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
 </head>
 <body>
+  <div class="loading">جاري التحميل...</div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
