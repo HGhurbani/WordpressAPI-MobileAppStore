@@ -11,6 +11,30 @@ import 'package:creditphoneqa/screens/profile_screen.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('User.fromJson prefers trimmed first name and persists via UserProvider', () async {
+    SharedPreferences.setMockInitialValues({});
+
+    final jwtResponse = {
+      'token': 'jwt-token',
+      'first_name': '  Preferred  ',
+      'user_display_name': 'Display Name',
+      'username': 'display.name',
+      'email': 'user@example.com',
+    };
+
+    final user = User.fromJson(jwtResponse);
+    expect(user.username, 'Preferred');
+
+    final provider = UserProvider();
+    provider.setUser(user);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    final restoredProvider = UserProvider();
+    await restoredProvider.loadUserFromPrefs();
+
+    expect(restoredProvider.user?.username, 'Preferred');
+  });
+
   testWidgets('ProfileScreen shows fallback initial for empty username', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
 
