@@ -21,6 +21,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
     with AutomaticKeepAliveClientMixin {
   final ApiService _api = ApiService();
   late Future<List<Category>> _futureCategories;
+  String? _currentLanguage;
 
   @override
   bool get wantKeepAlive => true;
@@ -29,7 +30,20 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
   void initState() {
     super.initState();
     final lang = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
+    _currentLanguage = lang;
     _futureCategories = _api.getCategories(language: lang);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final lang = Provider.of<LocaleProvider>(context).locale.languageCode;
+    if (_currentLanguage != lang) {
+      setState(() {
+        _currentLanguage = lang;
+        _futureCategories = _api.getCategories(language: lang);
+      });
+    }
   }
 
   @override
@@ -51,9 +65,13 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
         ),
         body: RefreshIndicator(
           onRefresh: () async {
-            final lang = Provider.of<LocaleProvider>(context, listen: false).locale.languageCode;
+            final lang = _currentLanguage ??
+                Provider.of<LocaleProvider>(context, listen: false)
+                    .locale
+                    .languageCode;
             setState(() {
               _futureCategories = _api.getCategories(language: lang);
+              _currentLanguage = lang;
             });
             HapticFeedback.lightImpact();
           },
