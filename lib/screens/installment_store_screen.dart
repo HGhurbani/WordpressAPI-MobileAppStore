@@ -178,6 +178,77 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
     );
   }
 
+  void _retryFetchCategories([String? language]) {
+    final lang = language ??
+        _currentLanguage ??
+        Provider.of<LocaleProvider>(context, listen: false)
+            .locale
+            .languageCode;
+
+    setState(() {
+      _futureCategories = _api.getCategories(language: lang);
+      _currentLanguage = lang;
+    });
+  }
+
+  Widget _buildErrorState({
+    required bool isArabic,
+    required VoidCallback onRetry,
+    String? message,
+    double? height,
+    EdgeInsetsGeometry padding = const EdgeInsets.symmetric(horizontal: 16),
+  }) {
+    final displayMessage = message ??
+        (isArabic
+            ? 'حدث خطأ أثناء تحميل البيانات.'
+            : 'An error occurred while loading the data.');
+    final retryLabel = isArabic ? 'إعادة المحاولة' : 'Retry';
+
+    final content = Padding(
+      padding: padding,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.error_outline,
+            color: Colors.redAccent,
+            size: 36,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            displayMessage,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF1A2543),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: onRetry,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6FE0DA),
+              foregroundColor: const Color(0xFF1A2543),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(retryLabel),
+          ),
+        ],
+      ),
+    );
+
+    final child = Center(child: content);
+
+    if (height != null) {
+      return SizedBox(height: height, child: child);
+    }
+
+    return child;
+  }
+
   Widget _buildCategoriesHeader(bool isArabic) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -231,6 +302,18 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
             ),
           );
         }
+        if (snapshot.hasError) {
+          final isArabic = language == 'ar';
+          return _buildErrorState(
+            isArabic: isArabic,
+            onRetry: () {
+              _retryFetchCategories(language);
+            },
+            message:
+                isArabic ? 'تعذر تحميل التصنيفات.' : 'Failed to load categories.',
+            height: 140,
+          );
+        }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -263,6 +346,20 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
             children: List.generate(2, (_) => _buildLoadingCategorySection()),
           );
         }
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: _buildErrorState(
+              isArabic: isArabic,
+              onRetry: () {
+                _retryFetchCategories(language);
+              },
+              message: isArabic
+                  ? 'تعذر تحميل أقسام المتجر بالتقسيط.'
+                  : 'Failed to load installment sections.',
+            ),
+          );
+        }
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -285,20 +382,6 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
         perPage: 10,
       ),
       builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return const SizedBox.shrink();
-        }
-
-        final isWaiting = snapshot.connectionState == ConnectionState.waiting;
-        final fetched = snapshot.data ?? const <Product>[];
-        final installmentProducts = fetched
-            .where((p) => p.shortDescription.trim().isNotEmpty)
-            .toList();
-
-        if (!isWaiting && installmentProducts.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
         Widget buildHeader() {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -455,6 +538,39 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
               },
             ),
           );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                buildHeader(),
+                const SizedBox(height: 12),
+                _buildErrorState(
+                  isArabic: isArabic,
+                  onRetry: () {
+                    setState(() {});
+                  },
+                  message: isArabic
+                      ? 'تعذر تحميل منتجات هذا التصنيف.'
+                      : "Failed to load this category's products.",
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final isWaiting = snapshot.connectionState == ConnectionState.waiting;
+        final fetched = snapshot.data ?? const <Product>[];
+        final installmentProducts = fetched
+            .where((p) => p.shortDescription.trim().isNotEmpty)
+            .toList();
+
+        if (!isWaiting && installmentProducts.isEmpty) {
+          return const SizedBox.shrink();
         }
 
         final body = isWaiting
