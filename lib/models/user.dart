@@ -102,12 +102,43 @@ class User {
     final resolvedName =
         _lookupFirstName() ?? _lookupDisplayOrUsername() ?? '';
 
+    String? _lookupPhone() {
+      final billingSection = json['billing'] is Map
+          ? Map<String, dynamic>.from(json['billing'])
+          : null;
+      final dataBillingSection = dataSection?['billing'] is Map
+          ? Map<String, dynamic>.from(dataSection!['billing'])
+          : null;
+      final customerBillingSection = customerSection?['billing'] is Map
+          ? Map<String, dynamic>.from(customerSection!['billing'])
+          : null;
+
+      final phoneSources = [
+        json['phone'],
+        json['user_phone'],
+        dataSection?['phone'],
+        customerSection?['phone'],
+        billingSection?['phone'],
+        dataBillingSection?['phone'],
+        customerBillingSection?['phone'],
+      ];
+
+      for (final source in phoneSources) {
+        final normalized = _normalizedString(source);
+        if (normalized != null) {
+          return normalized;
+        }
+      }
+
+      return null;
+    }
+
     return User(
       id: _parseId(idSource),
       token: json["token"] ?? "",
       username: resolvedName,
       email: json["user_email"] ?? json["email"] ?? "",
-      phone: json["phone"] ?? json["billing"]?["phone"] ?? "",
+      phone: _lookupPhone() ?? '',
     );
   }
 
