@@ -33,7 +33,7 @@ class NotificationExplanationScreen extends StatelessWidget {
               const Spacer(),
               ElevatedButton(
                 onPressed: () async {
-                  final notificationService = NotificationService();
+                  final notificationService = NotificationService.instance;
                   await notificationService.initialize();
                   Navigator.of(context).pop(true);
                 },

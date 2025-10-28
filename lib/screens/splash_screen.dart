@@ -152,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   }
 
   Future<void> _initializeNotifications() async {
-    await NotificationService().initialize();
+    await NotificationService.instance.initialize();
   }
 
   Future<void> _loadLanguage() async {

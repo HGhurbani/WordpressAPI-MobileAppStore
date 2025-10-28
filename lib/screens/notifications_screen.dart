@@ -70,7 +70,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     if (user != null && user.email != null) {
       // In a real app, you might want to show specific loading for this update check
-      await NotificationService().checkOrderStatusUpdates(
+      await NotificationService.instance.checkOrderStatusUpdates(
         userEmail: user.email!,
         langCode: langCode,
       );
@@ -80,7 +80,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     // For a better UX, marking all as read might happen after the user
     // sees the notifications for a while, or you implement individual marking.
     // For now, keeping it here as per original logic.
-    await NotificationService().markAllAsRead();
+    await NotificationService.instance.markAllAsRead();
 
     setState(() {
       _isLoading = false;

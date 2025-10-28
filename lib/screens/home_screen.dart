@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen>
       return;
     }
 
-    final service = NotificationService();
+    final service = NotificationService.instance;
     final notificationsEnabled = await service.getNotificationsEnabled();
     if (!notificationsEnabled) {
       _cancelNotificationSubscription();
@@ -752,11 +752,11 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         _buildIconWithBackground(Icons.notifications, () {
           Navigator.pushNamed(context, '/notifications').then((_) async {
-            final count = await NotificationService().getUnreadCount();
+            final count = await NotificationService.instance.getUnreadCount();
             if (!mounted) return;
             _notificationCount.value = count;
           });
-          NotificationService().markAllAsRead();
+          NotificationService.instance.markAllAsRead();
           if (mounted) {
             _notificationCount.value = 0;
           }

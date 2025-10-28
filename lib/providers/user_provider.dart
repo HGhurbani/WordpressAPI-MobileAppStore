@@ -8,7 +8,7 @@ import '../services/notification_service.dart';
 
 class UserProvider extends ChangeNotifier {
   UserProvider({NotificationService? notificationService})
-      : _notificationService = notificationService ?? NotificationService();
+      : _notificationService = notificationService ?? NotificationService.instance;
 
   final NotificationService _notificationService;
   User? _user;

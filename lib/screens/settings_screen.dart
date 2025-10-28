@@ -20,7 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _phoneController;
   bool notificationsEnabled = true;
   bool _isLoading = false;
-  final NotificationService _notificationService = NotificationService();
+  final NotificationService _notificationService = NotificationService.instance;
   final ApiService _apiService = ApiService(); // استخدام مثيل واحد للـ ApiService
 
   Future<void> _loadNotificationSettings() async {
