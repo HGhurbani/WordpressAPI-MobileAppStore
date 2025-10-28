@@ -59,7 +59,10 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
       await _trackOrderStatusChanges(orders);
       return orders;
     } catch (e) {
-      throw Exception('فشل في تحميل الطلبات. يرجى المحاولة مرة أخرى.');
+      final langCode = Localizations.localeOf(context).languageCode;
+      throw Exception(langCode == 'ar'
+          ? 'فشل في تحميل الطلبات. يرجى المحاولة مرة أخرى.'
+          : 'Failed to load orders. Please try again.');
     }
   }
 
@@ -78,13 +81,14 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
         _ordersFuture = _loadOrdersAndTrackChanges();
       });
 
+      final isAr = Localizations.localeOf(context).languageCode == 'ar';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text('تم تحديث الطلبات بنجاح'),
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(isAr ? 'تم تحديث الطلبات بنجاح' : 'Orders refreshed successfully'),
             ],
           ),
           backgroundColor: const Color(0xFF6FE0DA),
@@ -94,13 +98,14 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
         ),
       );
     } catch (e) {
+      final isAr = Localizations.localeOf(context).languageCode == 'ar';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.error_outline, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text('فشل في تحديث الطلبات'),
+              const Icon(Icons.error_outline, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(isAr ? 'فشل في تحديث الطلبات' : 'Failed to refresh orders'),
             ],
           ),
           backgroundColor: Colors.redAccent,
@@ -239,12 +244,33 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
   }
 
   Widget _buildFilterChips() {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     final filters = [
-      {'key': 'all', 'label': 'الكل', 'icon': Icons.all_inclusive},
-      {'key': 'pending', 'label': 'قيد المعالجة', 'icon': Icons.schedule},
-      {'key': 'processing', 'label': 'قيد التنفيذ', 'icon': Icons.autorenew},
-      {'key': 'completed', 'label': 'مكتمل', 'icon': Icons.check_circle},
-      {'key': 'cancelled', 'label': 'ملغي', 'icon': Icons.cancel},
+      {
+        'key': 'all',
+        'label': isAr ? 'الكل' : 'All',
+        'icon': Icons.all_inclusive,
+      },
+      {
+        'key': 'pending',
+        'label': isAr ? 'قيد المعالجة' : 'Pending',
+        'icon': Icons.schedule,
+      },
+      {
+        'key': 'processing',
+        'label': isAr ? 'قيد التنفيذ' : 'Processing',
+        'icon': Icons.autorenew,
+      },
+      {
+        'key': 'completed',
+        'label': isAr ? 'مكتمل' : 'Completed',
+        'icon': Icons.check_circle,
+      },
+      {
+        'key': 'cancelled',
+        'label': isAr ? 'ملغي' : 'Cancelled',
+        'icon': Icons.cancel,
+      },
     ];
 
     return Container(
@@ -303,6 +329,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
   }
 
   Widget _buildEmptyState() {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Center(
@@ -322,9 +349,9 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'لا توجد طلبات حتى الآن',
-              style: TextStyle(
+            Text(
+              isAr ? 'لا توجد طلبات حتى الآن' : 'No orders yet',
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1A2543),
@@ -332,7 +359,9 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
             ),
             const SizedBox(height: 8),
             Text(
-              'ستظهر طلباتك هنا بمجرد إجراء أول عملية شراء',
+              isAr
+                  ? 'ستظهر طلباتك هنا بمجرد إجراء أول عملية شراء'
+                  : 'Your orders will appear here after your first purchase',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey.shade600,
@@ -343,7 +372,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
             ElevatedButton.icon(
               onPressed: _refreshOrders,
               icon: const Icon(Icons.refresh),
-              label: const Text('تحديث'),
+              label: Text(isAr ? 'تحديث' : 'Refresh'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6FE0DA),
                 foregroundColor: Colors.white,
@@ -419,12 +448,13 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final isAr = Localizations.localeOf(context).languageCode == 'ar';
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       appBar: AppBar(
-        title: const Text(
-          "طلباتي",
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          isAr ? "طلباتي" : "My Orders",
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
@@ -496,7 +526,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'لا توجد طلبات لهذا التصنيف',
+                          isAr ? 'لا توجد طلبات لهذا التصنيف' : 'No orders for this filter',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey.shade600,
@@ -586,7 +616,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    "طلب رقم: #${order.id}",
+                                    (langCode == 'ar' ? "طلب رقم:" : "Order #") + " #${order.id}",
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 16,
@@ -646,7 +676,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                             Expanded(
                               child: _buildInfoItem(
                                 Icons.calendar_today_outlined,
-                                'التاريخ',
+                                langCode == 'ar' ? 'التاريخ' : 'Date',
                                 order.dateCreated.substring(0, 10),
                               ),
                             ),
@@ -658,10 +688,10 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                             Expanded(
                               child: _buildInfoItem(
                                 Icons.attach_money,
-                                'المقدم',
+                                langCode == 'ar' ? 'المقدم' : 'Down Payment',
                                 order.metaData.containsKey('custom_installment')
-                                    ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ر.ق"
-                                    : "${order.total} ر.ق",
+                                    ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}"
+                                    : "${order.total} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
                               ),
                             ),
                           ],
@@ -708,28 +738,29 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
   }
 
   void _confirmCancelOrder(int orderId) async {
+    final langCode = Localizations.localeOf(context).languageCode;
+    final isAr = langCode == 'ar';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 8),
-            Text('تأكيد الإلغاء'),
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            const SizedBox(width: 8),
+            Text(isAr ? 'تأكيد الإلغاء' : 'Confirm Cancellation'),
           ],
         ),
-        content: const Text(
-          'هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.',
-          style: TextStyle(height: 1.5),
+        content: Text(
+          isAr
+              ? 'هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.'
+              : 'Are you sure you want to cancel this order? This action cannot be undone.',
+          style: const TextStyle(height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'إلغاء',
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
+            child: Text(isAr ? 'إلغاء' : 'Cancel', style: TextStyle(color: Colors.grey.shade600)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -737,7 +768,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.white,
             ),
-            child: const Text('تأكيد الإلغاء'),
+            child: Text(isAr ? 'تأكيد الإلغاء' : 'Confirm'),
           ),
         ],
       ),
@@ -760,11 +791,11 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Text('تم إلغاء الطلب بنجاح'),
+                  const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                  Text(isAr ? 'تم إلغاء الطلب بنجاح' : 'Order cancelled successfully'),
                 ],
               ),
               backgroundColor: const Color(0xFF4CAF50),
@@ -777,17 +808,17 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
             _ordersFuture = _loadOrdersAndTrackChanges();
           });
         } else {
-          throw Exception('فشل في إلغاء الطلب');
+          throw Exception(isAr ? 'فشل في إلغاء الطلب' : 'Failed to cancel order');
         }
       } catch (e) {
         Navigator.pop(context); // Close loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.error_outline, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text('فشل في إلغاء الطلب. يرجى المحاولة مرة أخرى.'),
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(isAr ? 'فشل في إلغاء الطلب. يرجى المحاولة مرة أخرى.' : 'Failed to cancel the order. Please try again.'),
               ],
             ),
             backgroundColor: Colors.redAccent,
@@ -870,7 +901,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "تفاصيل الطلب #${order.id}",
+                    (langCode == 'ar' ? "تفاصيل الطلب" : "Order Details") + " #${order.id}",
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -914,7 +945,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "معلومات الطلب",
+                langCode == 'ar' ? "معلومات الطلب" : "Order Information",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -925,7 +956,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
 
               _buildIconInfoRow(
                 Icons.calendar_today_outlined,
-                "تاريخ الإنشاء",
+                langCode == 'ar' ? "تاريخ الإنشاء" : "Created Date",
                 order.dateCreated.substring(0, 10),
                 primaryColor,
                 accentColor,
@@ -933,17 +964,17 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
 
               _buildIconInfoRow(
                 Icons.attach_money,
-                "المقدم",
+                langCode == 'ar' ? "المقدم" : "Down Payment",
                 order.metaData.containsKey('custom_installment')
-                    ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ر.ق"
-                    : "${order.total} ر.ق",
+                    ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}"
+                    : "${order.total} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
                 primaryColor,
                 accentColor,
               ),
 
               _buildIconInfoRow(
                 Icons.info_outline,
-                "الحالة الحالية",
+                langCode == 'ar' ? "الحالة الحالية" : "Current Status",
                 _translateStatus(order.status, langCode),
                 primaryColor,
                 statusColor,
@@ -970,7 +1001,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                     Icon(Icons.payment, color: primaryColor, size: 24),
                     const SizedBox(width: 8),
                     Text(
-                      "خطة التقسيط",
+                      langCode == 'ar' ? "خطة التقسيط" : "Installment Plan",
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -988,31 +1019,31 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                       children: [
                         _buildIconInfoRow(
                           Icons.payment,
-                          "الدفعة الأولى",
-                          "${(double.tryParse(plan['downPayment'].toString()) ?? 0).toInt()} ر.ق",
+                          langCode == 'ar' ? "الدفعة الأولى" : "First Payment",
+                          "${(double.tryParse(plan['downPayment'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
                           primaryColor,
                           accentColor,
                         ),
 
                         _buildIconInfoRow(
                           Icons.account_balance_wallet,
-                          "المبلغ المتبقي",
-                          "${(double.tryParse(plan['remainingAmount'].toString()) ?? 0).toInt()} ر.ق",
+                          langCode == 'ar' ? "المبلغ المتبقي" : "Remaining Amount",
+                          "${(double.tryParse(plan['remainingAmount'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
                           primaryColor,
                           accentColor,
                         ),
 
                         _buildIconInfoRow(
                           Icons.calendar_view_month,
-                          "قيمة القسط الشهري",
-                          "${(double.tryParse(plan['monthlyPayment'].toString()) ?? 0).toInt()} ر.ق",
+                          langCode == 'ar' ? "قيمة القسط الشهري" : "Monthly Installment",
+                          "${(double.tryParse(plan['monthlyPayment'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
                           primaryColor,
                           accentColor,
                         ),
 
                         _buildIconInfoRow(
                           Icons.timelapse,
-                          "عدد الأشهر",
+                          langCode == 'ar' ? "عدد الأشهر" : "Months",
                           "${plan['numberOfInstallments']}",
                           primaryColor,
                           accentColor,
@@ -1035,7 +1066,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close),
-                label: const Text("إغلاق"),
+                label: Text(langCode == 'ar' ? "إغلاق" : "Close"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey.shade100,
                   foregroundColor: primaryColor,
@@ -1055,11 +1086,11 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Row(
+                        content: Row(
                           children: [
-                            Icon(Icons.info_outline, color: Colors.white, size: 20),
-                            SizedBox(width: 8),
-                            Text('سيتم إضافة إعادة الطلب قريباً'),
+                            const Icon(Icons.info_outline, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Text(langCode == 'ar' ? 'سيتم إضافة إعادة الطلب قريباً' : 'Reorder will be available soon'),
                           ],
                         ),
                         backgroundColor: accentColor,
@@ -1070,7 +1101,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                     );
                   },
                   icon: const Icon(Icons.refresh),
-                  label: const Text("إعادة الطلب"),
+                  label: Text(langCode == 'ar' ? "إعادة الطلب" : "Reorder"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: accentColor,
                     foregroundColor: Colors.white,

@@ -45,7 +45,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
   int _page = 1;
-  final int _perPage = 6;
+  int _perPage = 12; // زيادة العدد لتقليل حالات الصفحة الفارغة بعد الفلترة
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -73,26 +73,42 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   Future<void> _fetchProducts() async {
     setState(() => _isLoading = true);
-    final products = await apiService.getProducts(
-      categoryId: widget.categoryId,
-      language: _language,
-      perPage: _perPage,
-      page: _page,
-    );
+    List<Product> accumulated = [];
+    bool keepFetching = true;
+    int safety = 0; // حد أمان لمنع الحلقات اللانهائية
 
-    // تطبيق الفرز إذا طلب
-    final sorted = _applySorting(products);
+    while (keepFetching) {
+      final products = await apiService.getProducts(
+        categoryId: widget.categoryId,
+        language: _language,
+        perPage: _perPage,
+        page: _page,
+      );
 
-    final filteredAll = _applyInstallmentFilter(sorted);
+      final sorted = _applySorting(products);
+      final filtered = _applyInstallmentFilter(sorted);
+      accumulated.addAll(filtered);
+
+      final fetchedFullPage = products.length == _perPage;
+      // إذا كنا نعرض التقسيط فقط ولم نجد شيئًا بعد، ولاتزال هناك صفحات محتملة، تابع الجلب
+      if (widget.showInstallmentOnly && accumulated.isEmpty && fetchedFullPage && safety < 5) {
+        _page++;
+        safety++;
+        continue;
+      }
+
+      // وإلا توقف عن الجلب
+      _hasMore = fetchedFullPage;
+      keepFetching = false;
+    }
 
     setState(() {
-      _allProducts = filteredAll;
+      _allProducts = accumulated;
       _filteredProducts = _applySearch(
         _searchController.text,
-        baseList: filteredAll,
+        baseList: accumulated,
       );
       _isLoading = false;
-      _hasMore = products.length == _perPage;
     });
   }
 

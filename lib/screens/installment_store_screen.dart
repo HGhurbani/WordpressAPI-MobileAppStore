@@ -374,12 +374,18 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
   Widget _buildSingleCategorySection(
       Category category, String language, bool isArabic) {
     final moreLabel = isArabic ? 'المزيد' : 'More';
+    // اعتبار تصنيف الآيفون بأي من صيغ الكتابة الشائعة
+    final bool isIphoneCategory =
+        category.name.toLowerCase().contains('iphone') ||
+        category.name.contains('آيفون') ||
+        category.name.contains('ايفون');
 
     return FutureBuilder<List<Product>>(
       future: _api.getProducts(
         categoryId: category.id,
         language: language,
-        perPage: 10,
+        // في تصنيف الآيفون: اجلب كل المنتجات الممكنة (حتى 100)
+        perPage: isIphoneCategory ? 100 : 10,
       ),
       builder: (context, snapshot) {
         Widget buildHeader() {
