@@ -79,6 +79,8 @@ class NotificationService {
   static const String _notificationsEnabledKey = 'notifications_enabled';
   static const String _notificationsListKey = 'notifications';
   static const String _unreadCountKey = 'unread_notifications';
+  static const String _notificationsTruncatedKey = 'notifications_truncated';
+  static const int _maxStoredNotifications = 50;
   static StreamSubscription<RemoteMessage>? _foregroundSubscription;
   StreamSubscription<String>? _tokenRefreshSubscription;
 
@@ -90,6 +92,7 @@ class NotificationService {
       _unreadCountKey,
       _notificationsEnabledKey,
       'order_statuses',
+      _notificationsTruncatedKey,
     ];
 
     for (final key in keysToRemove) {
@@ -254,6 +257,7 @@ class NotificationService {
     }
     final prefs = await SharedPreferences.getInstance();
     final notifications = prefs.getStringList(_notificationsListKey) ?? [];
+    final bool wasTruncated = prefs.getBool(_notificationsTruncatedKey) ?? false;
     final unreadCount = prefs.getInt(_unreadCountKey) ?? 0;
 
     final notification = {
@@ -267,9 +271,20 @@ class NotificationService {
     };
 
     notifications.insert(0, jsonEncode(notification));
+
+    bool isTruncated = wasTruncated;
+    if (notifications.length > _maxStoredNotifications) {
+      notifications.removeRange(
+        _maxStoredNotifications,
+        notifications.length,
+      );
+      isTruncated = true;
+    }
+
     await prefs.setStringList(_notificationsListKey, notifications);
     final updatedCount = unreadCount + 1;
     await prefs.setInt(_unreadCountKey, updatedCount);
+    await prefs.setBool(_notificationsTruncatedKey, isTruncated);
     _unreadCountController.add(updatedCount);
   }
 
@@ -335,6 +350,7 @@ class NotificationService {
     final storedStatuses = prefs.getString('order_statuses') ?? '{}';
     final Map<String, String> oldStatuses = Map<String, String>.from(json.decode(storedStatuses));
     final notifications = prefs.getStringList(_notificationsListKey) ?? [];
+    bool wasTruncated = prefs.getBool(_notificationsTruncatedKey) ?? false;
     int unreadCount = prefs.getInt(_unreadCountKey) ?? 0;
 
     for (final order in orders) {
@@ -370,9 +386,18 @@ class NotificationService {
       oldStatuses[orderId] = currentStatus;
     }
 
+    if (notifications.length > _maxStoredNotifications) {
+      notifications.removeRange(
+        _maxStoredNotifications,
+        notifications.length,
+      );
+      wasTruncated = true;
+    }
+
     await prefs.setStringList(_notificationsListKey, notifications);
     await prefs.setInt(_unreadCountKey, unreadCount);
     await prefs.setString('order_statuses', json.encode(oldStatuses));
+    await prefs.setBool(_notificationsTruncatedKey, wasTruncated);
     _unreadCountController.add(unreadCount);
   }
 

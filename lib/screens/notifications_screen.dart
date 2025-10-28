@@ -50,6 +50,7 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   List<Map<String, dynamic>> notifications = [];
   bool _isLoading = false; // To show a loading indicator
+  bool _hasTruncatedHistory = false;
 
   @override
   void initState() {
@@ -90,6 +91,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _loadNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     final notificationsList = prefs.getStringList('notifications') ?? [];
+    final truncated = prefs.getBool('notifications_truncated') ?? false;
 
     setState(() {
       notifications = notificationsList
@@ -101,6 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           final timeB = DateTime.tryParse(b['time'] ?? '') ?? DateTime(0);
           return timeB.compareTo(timeA);
         });
+      _hasTruncatedHistory = truncated;
     });
   }
 
@@ -323,13 +326,51 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         color: AppColors.primaryColor,
         child: ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: notifications.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 14), // More space between cards
+          itemCount: notifications.length + (_hasTruncatedHistory ? 1 : 0),
+          separatorBuilder: (_, index) {
+            final isBeforeInfoBanner =
+                _hasTruncatedHistory && index >= notifications.length - 1;
+            return SizedBox(height: isBeforeInfoBanner ? 24 : 14);
+          }, // More space between cards
           itemBuilder: (context, index) {
+            if (_hasTruncatedHistory && index == notifications.length) {
+              return _buildHistoryInfoBanner(langCode);
+            }
             final notification = notifications[index];
             return _buildNotificationCard(notification, langCode);
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryInfoBanner(String langCode) {
+    final text = langCode == 'ar'
+        ? 'تم الاحتفاظ بآخر 50 إشعارًا فقط. تم حذف الإشعارات الأقدم لتوفير المساحة.'
+        : 'Only the latest 50 notifications are kept. Older alerts have been removed to save space.';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blueGrey.shade100),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: AppColors.primaryColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTextStyles.notificationBody.copyWith(
+                color: AppColors.primaryColor,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
