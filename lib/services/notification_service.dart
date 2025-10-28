@@ -13,11 +13,11 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   }
-  await NotificationService().handleBackgroundMessage(message);
+  await NotificationService.instance.handleBackgroundMessage(message);
 }
 
 class NotificationService {
-  NotificationService({
+  NotificationService._internal({
     FirebaseMessaging? firebaseMessaging,
     FlutterLocalNotificationsPlugin? localNotifications,
     ApiService? apiService,
@@ -26,6 +26,50 @@ class NotificationService {
         _localNotifications = localNotifications ?? FlutterLocalNotificationsPlugin(),
         _apiService = apiService ?? ApiService(),
         _deleteTokenOverride = deleteTokenOverride;
+
+  static NotificationService? _instance;
+
+  static NotificationService get instance =>
+      _instance ??= NotificationService._internal();
+
+  factory NotificationService({
+    FirebaseMessaging? firebaseMessaging,
+    FlutterLocalNotificationsPlugin? localNotifications,
+    ApiService? apiService,
+    Future<void> Function()? deleteTokenOverride,
+  }) {
+    if (_instance == null) {
+      _instance = NotificationService._internal(
+        firebaseMessaging: firebaseMessaging,
+        localNotifications: localNotifications,
+        apiService: apiService,
+        deleteTokenOverride: deleteTokenOverride,
+      );
+    } else if (firebaseMessaging != null ||
+        localNotifications != null ||
+        apiService != null ||
+        deleteTokenOverride != null) {
+      print(
+        'NotificationService is already initialized; duplicate configuration was ignored.',
+      );
+    }
+    return instance;
+  }
+
+  /// Resets the singleton instance. Intended for testing to inject mocks.
+  static void resetForTesting({
+    FirebaseMessaging? firebaseMessaging,
+    FlutterLocalNotificationsPlugin? localNotifications,
+    ApiService? apiService,
+    Future<void> Function()? deleteTokenOverride,
+  }) {
+    _instance = NotificationService._internal(
+      firebaseMessaging: firebaseMessaging,
+      localNotifications: localNotifications,
+      apiService: apiService,
+      deleteTokenOverride: deleteTokenOverride,
+    );
+  }
 
   final FirebaseMessaging _fcm;
   final FlutterLocalNotificationsPlugin _localNotifications;
@@ -74,8 +118,13 @@ class NotificationService {
 
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    _tokenRefreshSubscription ??=
-        _fcm.onTokenRefresh.listen((token) => unawaited(_handleTokenRefresh(token)));
+    if (_tokenRefreshSubscription == null) {
+      _tokenRefreshSubscription =
+          _fcm.onTokenRefresh.listen((token) => unawaited(_handleTokenRefresh(token)));
+      print('NotificationService: Token refresh listener registered.');
+    } else {
+      print('NotificationService: Token refresh listener already registered; skipping.');
+    }
 
     if (notificationsEnabled) {
       _startForegroundListener();
@@ -85,19 +134,30 @@ class NotificationService {
   }
 
   void _startForegroundListener() {
-    _foregroundSubscription ??=
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) => _handleForegroundMessage(message));
+    if (_foregroundSubscription == null) {
+      _foregroundSubscription = FirebaseMessaging.onMessage
+          .listen((RemoteMessage message) => _handleForegroundMessage(message));
+      print('NotificationService: Foreground listener registered.');
+    } else {
+      print('NotificationService: Foreground listener already active; skipping.');
+    }
   }
 
   Future<void> _stopForegroundListener() async {
-    await _foregroundSubscription?.cancel();
-    _foregroundSubscription = null;
+    if (_foregroundSubscription != null) {
+      await _foregroundSubscription?.cancel();
+      _foregroundSubscription = null;
+      print('NotificationService: Foreground listener cancelled.');
+    }
   }
 
   Future<void> logoutCleanup({String? email}) async {
     await _stopForegroundListener();
-    await _tokenRefreshSubscription?.cancel();
-    _tokenRefreshSubscription = null;
+    if (_tokenRefreshSubscription != null) {
+      await _tokenRefreshSubscription?.cancel();
+      _tokenRefreshSubscription = null;
+      print('NotificationService: Token refresh listener cancelled.');
+    }
     await clearStoredData();
 
     final prefs = await SharedPreferences.getInstance();

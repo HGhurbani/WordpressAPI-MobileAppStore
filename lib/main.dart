@@ -67,7 +67,7 @@ Future<void> _initializeMobileApp() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  await NotificationService().initialize();
+  await NotificationService.instance.initialize();
 
   final userProvider = UserProvider();
   await userProvider.loadUserFromPrefs();
@@ -185,7 +185,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final NotificationService _notificationService = NotificationService();
+  final NotificationService _notificationService = NotificationService.instance;
 
   @override
   void initState() {
