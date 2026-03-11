@@ -77,7 +77,19 @@ class UserProvider extends ChangeNotifier {
   }
   Future<bool> deleteAccount() async {
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt('user_id');
+    int? userId = prefs.getInt('user_id') ?? _user?.id;
+
+    // Fallback: if user_id is missing, try to fetch by email (e.g. when JWT didn't store it)
+    if (userId == null) {
+      final email = _user?.email ?? prefs.getString('user_email');
+      if (email != null && email.isNotEmpty) {
+        try {
+          userId = await ApiService().fetchCustomerIdByEmail(email);
+        } catch (e) {
+          debugPrint('Could not fetch customer ID by email: $e');
+        }
+      }
+    }
 
     if (userId == null) {
       debugPrint('No user ID found. Cannot delete.');

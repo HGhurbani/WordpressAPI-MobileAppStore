@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:creditphoneqa/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
-import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -20,10 +23,70 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _authService = AuthService();
   bool _loading = false;
+  String? _generalError;
+
+  String _getFriendlyRegisterErrorMessage(dynamic error) {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (error is SocketException) {
+      return l10n.authErrorNoInternet;
+    }
+
+    if (error is TimeoutException) {
+      return l10n.authErrorTimeout;
+    }
+
+    if (error is AuthException) {
+      final code = error.code.toLowerCase();
+      final msg = error.message.toLowerCase();
+
+      bool containsAny(String value, List<String> needles) =>
+          needles.any((n) => value.contains(n));
+
+      if (containsAny(code, ['email']) && containsAny(code, ['exists', 'already'])) {
+        return l10n.authErrorEmailExists;
+      }
+      if (containsAny(code, ['username', 'user']) &&
+          containsAny(code, ['exists', 'already', 'taken'])) {
+        return l10n.authErrorUsernameExists;
+      }
+      if (containsAny(code, ['invalid_email']) ||
+          (code.contains('email') && code.contains('invalid'))) {
+        return l10n.authErrorInvalidEmail;
+      }
+      if (containsAny(code, ['weak_password']) ||
+          (code.contains('password') && code.contains('weak'))) {
+        return l10n.authErrorWeakPassword;
+      }
+
+      if (containsAny(msg, ['already registered', 'already exists', 'email exists'])) {
+        return l10n.authErrorEmailExists;
+      }
+      if (containsAny(msg, ['username exists', 'username already', 'already taken'])) {
+        return l10n.authErrorUsernameExists;
+      }
+      if (containsAny(msg, ['invalid email', 'email is not valid'])) {
+        return l10n.authErrorInvalidEmail;
+      }
+      if (containsAny(msg, ['weak password', 'password is too weak'])) {
+        return l10n.authErrorWeakPassword;
+      }
+    }
+
+    final raw = error.toString().toLowerCase();
+    if (raw.contains('woocommerce') ||
+        raw.contains('server error') ||
+        raw.contains('internal server error') ||
+        raw.contains('503') ||
+        raw.contains('502')) {
+      return l10n.authErrorServerIssue;
+    }
+
+    return l10n.authErrorGenericRegister;
+  }
 
   void _register() async {
-    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-    final language = localeProvider.locale.languageCode;
+    setState(() => _generalError = null);
 
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
@@ -45,13 +108,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       Provider.of<UserProvider>(context, listen: false).setUser(user);
-      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
-    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(language == "ar" ? "فشل: $e" : "Failed: $e"),
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.authRegisterSuccess)),
+            ],
+          ),
+          backgroundColor: const Color(0xFF6FE0DA),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(milliseconds: 900),
         ),
       );
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _generalError = _getFriendlyRegisterErrorMessage(e));
     } finally {
       setState(() => _loading = false);
     }
@@ -59,36 +139,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    final String language = localeProvider.locale.languageCode;
-
-    final String titleText = language == "ar" ? "إنشاء حساب" : "Register";
-    final String usernameHint = language == "ar" ? "اسم المستخدم" : "Username";
-    final String emailHint = language == "ar" ? "البريد الإلكتروني" : "Email";
-    final String passwordHint = language == "ar" ? "كلمة المرور" : "Password";
-    final String confirmHint = language == "ar" ? "تأكيد كلمة المرور" : "Confirm Password";
-    final String buttonText = language == "ar" ? "إنشاء حساب" : "Register";
+    final l10n = AppLocalizations.of(context)!;
 
     final size = MediaQuery.of(context).size;
 
-    final String usernameError = language == "ar"
-        ? "يرجى إدخال اسم المستخدم"
-        : "Please enter a username";
-    final String emailError = language == "ar"
-        ? "يرجى إدخال بريد إلكتروني صالح"
-        : "Please enter a valid email";
-    final String phoneError = language == "ar"
-        ? "يرجى إدخال رقم جوال"
-        : "Please enter a phone number";
-    final String passwordError = language == "ar"
-        ? "يرجى إدخال كلمة المرور"
-        : "Please enter a password";
-    final String confirmEmptyError = language == "ar"
-        ? "يرجى تأكيد كلمة المرور"
-        : "Please confirm your password";
-    final String confirmError = language == "ar"
-        ? "كلمة المرور غير متطابقة"
-        : "Passwords do not match";
+    final String usernameError = l10n.authEnterUsername;
+    final String emailError = l10n.authEnterEmailValid;
+    final String phoneError = l10n.authEnterPhone;
+    final String passwordError = l10n.authEnterPassword;
+    final String confirmEmptyError = l10n.authEnterConfirmPassword;
+    final String confirmError = l10n.authPasswordsDoNotMatch;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -106,7 +166,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 30),
                 Text(
-                  titleText,
+                  l10n.authRegisterTitle,
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -120,11 +180,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (value == null || value.trim().isEmpty) {
                       return usernameError;
                     }
+                    if (value.trim().length < 3) {
+                      return l10n.authUsernameMinLength;
+                    }
                     return null;
                   },
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.person, color: Color(0xFF1A2543)),
-                    hintText: usernameHint,
+                    hintText: l10n.authUsernameHint,
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
@@ -147,7 +210,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.email, color: Color(0xFF1A2543)),
-                    hintText: emailHint,
+                    hintText: l10n.authEmailHint,
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
@@ -168,7 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.phone, color: Color(0xFF1A2543)),
-                    hintText: language == "ar" ? "رقم الجوال" : "Phone",
+                    hintText: l10n.authPhoneHint,
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
@@ -185,11 +248,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (value == null || value.isEmpty) {
                       return passwordError;
                     }
+                    if (value.length < 6) {
+                      return l10n.authPasswordMinLength;
+                    }
                     return null;
                   },
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.lock, color: Color(0xFF1A2543)),
-                    hintText: passwordHint,
+                    hintText: l10n.authPasswordHint,
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
@@ -213,7 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF1A2543)),
-                    hintText: confirmHint,
+                    hintText: l10n.authConfirmPasswordHint,
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
@@ -223,6 +289,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
+                if (_generalError != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _generalError!,
+                            style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 _loading
                     ? const CircularProgressIndicator(color: Color(0xFF1A2543))
                     : SizedBox(
@@ -237,7 +327,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           child: Text(
-                            buttonText,
+                            l10n.authRegisterButton,
                             style: const TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),

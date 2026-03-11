@@ -20,7 +20,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   late PageController _pageController;
-  bool _isDrawerOpen = false; // يتم استخدامه لتتبع حالة الدرج
 
   final List<Widget> _screens = const [
     HomeScreen(),
@@ -72,7 +71,6 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         extendBodyBehindAppBar: true, // لجعل الـ AppBar شفافًا أو عائمًا فوق المحتوى
         drawer: _buildEnhancedDrawer(context, languageCode),
         onDrawerChanged: (isOpened) {
-          setState(() => _isDrawerOpen = isOpened);
           if (isOpened) {
             HapticFeedback.mediumImpact(); // اهتزاز عند فتح الدرج
           }
@@ -225,8 +223,59 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                       isAr ? "الأسئلة الشائعة" : "FAQs",
                           () => _navigateFromDrawer(context, '/faq'),
                       delay: 1000,
-                      isLast: true, // للإشارة إلى العنصر الأخير لتعديل الهامش
                     ),
+                    const SizedBox(height: 12),
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      height: 1,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            Colors.white.withOpacity(0.25),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        isAr ? "تابعنا" : "Follow us",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Column(
+                        children: [
+                          _buildExternalLinkTile(
+                            icon: Icons.camera_alt_rounded,
+                            title: isAr ? "انستقرام" : "Instagram",
+                            url: "https://www.instagram.com/creditphone.qa/?igsh=Z3R2Y3Y2djY3Z3Jv",
+                          ),
+                          const SizedBox(height: 6),
+                          _buildExternalLinkTile(
+                            icon: Icons.play_circle_fill_rounded,
+                            title: isAr ? "تيك توك" : "TikTok",
+                            url: "https://www.tiktok.com/@credit.phone",
+                          ),
+                          const SizedBox(height: 6),
+                          _buildExternalLinkTile(
+                            icon: Icons.language_rounded,
+                            title: isAr ? "الموقع الإلكتروني" : "Website",
+                            url: "https://creditphoneqatar.com/",
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -237,6 +286,80 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildExternalLinkTile({
+    required IconData icon,
+    required String title,
+    required String url,
+    bool isLast = false,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(
+        left: 12,
+        right: 12,
+        bottom: isLast ? 10 : 0,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            HapticFeedback.lightImpact();
+            await _openExternalUrl(url);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withOpacity(0.06),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6FE0DA).withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: const Color(0xFF6FE0DA),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.open_in_new_rounded,
+                  size: 18,
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openExternalUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      debugPrint('Could not launch: $url');
+    }
+  }
+
   // هيدر الدرج الجانبي المحسن
   Widget _buildEnhancedDrawerHeader(BuildContext context, bool isAr, bool isLoggedIn, UserProvider userProvider) {
     return Container(
@@ -245,7 +368,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         onTap: () {
           HapticFeedback.lightImpact(); // اهتزاز خفيف عند النقر
           Navigator.pop(context); // إغلاق الدرج
-          Navigator.pushNamed(context, '/profile'); // الانتقال لصفحة البروفايل
+          // بدل فتح Route جديدة (والتي تعيد بناء الشاشات عند الرجوع)، فقط انتقل لتبويب الحساب.
+          Future.delayed(const Duration(milliseconds: 250), () {
+            if (!mounted) return;
+            _onItemTapped(3);
+          });
         },
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -273,9 +400,13 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   backgroundColor: Colors.white,
                   child: isLoggedIn
                       ? Text(
-                    userProvider.user?.username?.isNotEmpty == true
-                        ? userProvider.user!.username![0].toUpperCase()
-                        : 'U',
+                    (() {
+                      final username = userProvider.user?.username;
+                      if (username != null && username.isNotEmpty) {
+                        return username[0].toUpperCase();
+                      }
+                      return 'U';
+                    })(),
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -417,12 +548,27 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
     Navigator.pop(context); // إغلاق الدرج أولاً
     Future.delayed(const Duration(milliseconds: 250), () {
       // تأخير بسيط قبل الانتقال لإعطاء وقت لإغلاق الدرج
-      if (route == '/main') {
-        // إذا كان الانتقال للصفحة الرئيسية، استخدم pushReplacementNamed لتجنب تكديس الشاشات
-        Navigator.pushReplacementNamed(context, route);
-      } else {
-        Navigator.pushNamed(context, route);
+      if (!mounted) return;
+
+      // داخل MainScreen: لا داعي لفتح /main كـRoute جديدة (هذا يعيد بناء الشاشات).
+      // بدلاً من ذلك، بدّل التبويب المناسب.
+      switch (route) {
+        case '/main':
+        case '/home':
+          _onItemTapped(0);
+          return;
+        case '/installment-store':
+          _onItemTapped(1);
+          return;
+        case '/cart':
+          _onItemTapped(2);
+          return;
+        case '/profile':
+          _onItemTapped(3);
+          return;
       }
+
+      Navigator.pushNamed(context, route);
     });
   }
 
@@ -473,9 +619,23 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 const SizedBox(height: 24),
-                _buildContactOption("+97450105685", "50105685"),
+                _buildContactOption(
+                  "+97450105685",
+                  "50105685",
+                  isAr ? "قسم التحصيل" : "Collections",
+                ),
                 const SizedBox(height: 12),
-                _buildContactOption("+97477704313", "77704313"),
+                _buildContactOption(
+                  "+97477704313",
+                  "77704313",
+                  isAr ? "الاستفسار والطلب والمبيعات" : "Inquiries, orders & sales",
+                ),
+                const SizedBox(height: 12),
+                _buildContactOption(
+                  "+97471727771",
+                  "71727771",
+                  isAr ? "الاستفسار والطلب والمبيعات" : "Inquiries, orders & sales",
+                ),
                 const SizedBox(height: 24),
                 Row(
                   children: [
@@ -508,7 +668,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   }
 
   // خيار الاتصال (مثل رقم الواتساب)
-  Widget _buildContactOption(String phoneNumber, String displayNumber) {
+  Widget _buildContactOption(String phoneNumber, String displayNumber, String label) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -540,13 +700,27 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: Text(
-                  displayNumber,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A2543),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A2543),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      displayNumber,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const Icon(

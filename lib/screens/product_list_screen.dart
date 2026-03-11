@@ -49,8 +49,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  bool _isAutoLoadingForFilter = false;
 
   String _language = "ar";
+  _PaymentFilter _paymentFilter = _PaymentFilter.all;
 
   @override
   void initState() {
@@ -72,48 +74,44 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Future<void> _fetchProducts() async {
-    setState(() => _isLoading = true);
-    List<Product> accumulated = [];
-    bool keepFetching = true;
-    int safety = 0; // حد أمان لمنع الحلقات اللانهائية
-
-    while (keepFetching) {
-      final products = await apiService.getProducts(
-        categoryId: widget.categoryId,
-        language: _language,
-        perPage: _perPage,
-        page: _page,
-      );
-
-      final sorted = _applySorting(products);
-      final filtered = _applyInstallmentFilter(sorted);
-      accumulated.addAll(filtered);
-
-      final fetchedFullPage = products.length == _perPage;
-      // إذا كنا نعرض التقسيط فقط ولم نجد شيئًا بعد، ولاتزال هناك صفحات محتملة، تابع الجلب
-      if (widget.showInstallmentOnly && accumulated.isEmpty && fetchedFullPage && safety < 5) {
-        _page++;
-        safety++;
-        continue;
-      }
-
-      // وإلا توقف عن الجلب
-      _hasMore = fetchedFullPage;
-      keepFetching = false;
-    }
-
     setState(() {
-      _allProducts = accumulated;
+      _isLoading = true;
+      _page = 1;
+      _hasMore = true;
+      _allProducts = [];
+      _filteredProducts = [];
+    });
+
+    // Default behavior: show ALL (cash + installment) and allow user filtering.
+    // If a screen explicitly opened "installment results" or "cash results", we
+    // keep that as an initial filter preference without hiding other items forever.
+    _paymentFilter = _initialPaymentFilter();
+
+    final products = await apiService.getProducts(
+      categoryId: widget.categoryId,
+      language: _language,
+      perPage: _perPage,
+      page: _page,
+    );
+
+    final sorted = _applySorting(products);
+    setState(() {
+      _allProducts = sorted;
       _filteredProducts = _applySearch(
         _searchController.text,
-        baseList: accumulated,
+        baseList: _applyPaymentFilter(sorted),
       );
+      _hasMore = products.length == _perPage;
       _isLoading = false;
     });
+
+    await _ensureResultsForFilterIfNeeded();
   }
 
   Future<void> _fetchMoreProducts() async {
-    _isLoadingMore = true;
+    if (_isLoadingMore) return;
+    if (!mounted) return;
+    setState(() => _isLoadingMore = true);
     _page++;
     final more = await apiService.getProducts(
       categoryId: widget.categoryId,
@@ -124,17 +122,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
     if (more.isNotEmpty) {
       final sorted = _applySorting(more);
-      final filteredMore = _applyInstallmentFilter(sorted);
 
-      setState(() {
-        _allProducts.addAll(filteredMore);
-        _filteredProducts = _applySearch(_searchController.text);
-        _hasMore = more.length == _perPage;
-      });
+      if (mounted) {
+        setState(() {
+          _allProducts.addAll(sorted);
+          _applySorting(_allProducts);
+          _filteredProducts = _applySearch(
+            _searchController.text,
+            baseList: _applyPaymentFilter(_allProducts),
+          );
+          _hasMore = more.length == _perPage;
+        });
+      }
     } else {
-      setState(() => _hasMore = false);
+      if (mounted) {
+        setState(() => _hasMore = false);
+      }
     }
-    _isLoadingMore = false;
+    if (mounted) {
+      setState(() => _isLoadingMore = false);
+    }
   }
 
   List<Product> _applySorting(List<Product> products) {
@@ -145,20 +152,31 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return products;
   }
 
-  List<Product> _applyInstallmentFilter(List<Product> products) {
-    // If cash-only requested, keep products with empty shortDescription
-    if (widget.showCashOnly) {
-      return products
-          .where((product) => product.shortDescription.trim().isEmpty)
-          .toList();
+  _PaymentFilter _initialPaymentFilter() {
+    // Requirement: category browsing should show BOTH cash + installment.
+    // Keep old flags only as an *initial preference* (mostly for search results screens).
+    if (widget.showCashOnly && !widget.showInstallmentOnly) {
+      return _PaymentFilter.cash;
     }
-    // If installment-only requested, keep products with non-empty shortDescription
-    if (widget.showInstallmentOnly) {
-      return products
-          .where((product) => product.shortDescription.trim().isNotEmpty)
-          .toList();
+    if (widget.showInstallmentOnly && !widget.showCashOnly) {
+      return _PaymentFilter.installment;
     }
-    return products;
+    return _PaymentFilter.all;
+  }
+
+  List<Product> _applyPaymentFilter(List<Product> products) {
+    switch (_paymentFilter) {
+      case _PaymentFilter.cash:
+        return products
+            .where((product) => product.shortDescription.trim().isEmpty)
+            .toList();
+      case _PaymentFilter.installment:
+        return products
+            .where((product) => product.shortDescription.trim().isNotEmpty)
+            .toList();
+      case _PaymentFilter.all:
+        return products;
+    }
   }
 
   List<Product> _applySearch(String query, {List<Product>? baseList}) {
@@ -168,7 +186,66 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void _filterProducts(String query) {
-    setState(() => _filteredProducts = _applySearch(query));
+    setState(() {
+      _filteredProducts = _applySearch(
+        query,
+        baseList: _applyPaymentFilter(_allProducts),
+      );
+    });
+  }
+
+  void _setPaymentFilter(_PaymentFilter filter) {
+    if (_paymentFilter == filter) return;
+    setState(() {
+      _paymentFilter = filter;
+      _filteredProducts = _applySearch(
+        _searchController.text,
+        baseList: _applyPaymentFilter(_allProducts),
+      );
+    });
+
+    _ensureResultsForFilterIfNeeded();
+  }
+
+  Future<void> _ensureResultsForFilterIfNeeded() async {
+    // If user filtered to cash/installment but we only loaded a few pages,
+    // results can be empty until more pages are fetched. Auto-fetch a few pages.
+    if (!mounted) return;
+    if (_paymentFilter == _PaymentFilter.all) return;
+    if (_isAutoLoadingForFilter) return;
+    if (_isLoading || _isLoadingMore) return;
+    if (!_hasMore) return;
+
+    final query = _searchController.text;
+    // For normal browsing (no search query), try to fill the grid with enough items.
+    // For search results, avoid too many extra requests: stop once we have at least one match.
+    final desiredCount = query.trim().isEmpty ? 8 : 1;
+
+    final current = _applySearch(
+      _searchController.text,
+      baseList: _applyPaymentFilter(_allProducts),
+    );
+    if (current.length >= desiredCount) return;
+
+    setState(() => _isAutoLoadingForFilter = true);
+    var safety = 0;
+    while (mounted && safety < 6) {
+      final nowFiltered = _applySearch(
+        _searchController.text,
+        baseList: _applyPaymentFilter(_allProducts),
+      );
+      if (nowFiltered.length >= desiredCount || !_hasMore) break;
+      await _fetchMoreProducts();
+      safety++;
+    }
+    if (!mounted) return;
+    setState(() {
+      _filteredProducts = _applySearch(
+        _searchController.text,
+        baseList: _applyPaymentFilter(_allProducts),
+      );
+      _isAutoLoadingForFilter = false;
+    });
   }
 
   @override
@@ -212,11 +289,41 @@ class _ProductListScreenState extends State<ProductListScreen> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Align(
+              alignment: isAr ? Alignment.centerRight : Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: Text(isAr ? 'الكل' : 'All'),
+                    selected: _paymentFilter == _PaymentFilter.all,
+                    onSelected: (_) => _setPaymentFilter(_PaymentFilter.all),
+                  ),
+                  ChoiceChip(
+                    label: Text(isAr ? 'كاش' : 'Cash'),
+                    selected: _paymentFilter == _PaymentFilter.cash,
+                    onSelected: (_) => _setPaymentFilter(_PaymentFilter.cash),
+                  ),
+                  ChoiceChip(
+                    label: Text(isAr ? 'تقسيط' : 'Installment'),
+                    selected: _paymentFilter == _PaymentFilter.installment,
+                    onSelected: (_) => _setPaymentFilter(_PaymentFilter.installment),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredProducts.isEmpty
-                ? Center(child: Text(noResults))
+                ? (_isAutoLoadingForFilter || (_isLoadingMore && _hasMore))
+                    ? const Center(child: CircularProgressIndicator())
+                    : Center(child: Text(noResults))
                 : NotificationListener<ScrollNotification>(
               onNotification: (_) => true,
               child: GridView.builder(
@@ -242,4 +349,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 }
+
+enum _PaymentFilter { all, cash, installment }

@@ -5,6 +5,7 @@ import '../providers/cart_provider.dart';
 import '../providers/locale_provider.dart';
 import '../utils.dart'; // تأكد أن هذه الدالة موجودة وتعمل بشكل صحيح لتنسيق الأرقام
 import 'checkout_screen.dart'; // تأكد من مسار هذا الملف
+import '../widgets/app_cached_image.dart';
 
 // لتجريد HTML - يمكنك وضعها في ملف utils.dart إذا كنت تستخدمها في أماكن أخرى
 import 'package:html/parser.dart' show parse;
@@ -378,13 +379,12 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                item.product.images.isNotEmpty
-                    ? item.product.images.first
-                    : 'https://via.placeholder.com/60', // حجم أكبر للصورة
+              child: AppCachedImage(
+                url: item.product.images.isNotEmpty ? item.product.images.first : null,
                 width: 60,
                 height: 60,
                 fit: BoxFit.cover,
+                placeholderBackground: Colors.grey.shade200,
               ),
             ),
             const SizedBox(width: 12),

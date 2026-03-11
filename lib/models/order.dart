@@ -43,6 +43,6 @@ class Order {
 
   bool get canBeCancelled {
     final lowerStatus = status.toLowerCase();
-    return lowerStatus == 'pending' || lowerStatus == 'processing';
+    return lowerStatus == 'on-hold';
   }
 }

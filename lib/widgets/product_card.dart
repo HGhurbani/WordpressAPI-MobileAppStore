@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../screens/product_detail_screen.dart';
 import '../providers/cart_provider.dart';
 import '../utils.dart';
+import 'app_cached_image.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -16,8 +17,7 @@ class ProductCard extends StatelessWidget {
     final bool isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final String currencySymbol = isArabic ? "ر.ق" : "QAR";
 
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    final int quantity = cartProvider.getQuantity(product);
+    // Cart state is handled by Consumer below.
 
     return Directionality(
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
@@ -52,31 +52,30 @@ class ProductCard extends StatelessWidget {
 
   Widget _buildProductImage(BuildContext context, bool isArabic) {
     final bool hasInstallment = product.shortDescription.isNotEmpty;
+    final availabilityKey = product.availabilityKey();
+    final availabilityLabel = product.availabilityLabel(isArabic);
+    final availabilityColor = availabilityKey == 'out'
+        ? Colors.redAccent
+        : (availabilityKey == 'low' ? const Color(0xFFFF9800) : const Color(0xFF4CAF50));
 
     return Stack(
       children: [
         AspectRatio(
           aspectRatio: 1.1, // Slightly less tall to give more space for text
           child: product.images.isNotEmpty
-              ? Image.network(
-            product.images.first,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Center(
-                child: CircularProgressIndicator(
-                  value: loadingProgress.expectedTotalBytes != null
-                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                      : null,
-                  color: const Color(0xFF6FE0DA), // Loading indicator color
-                ),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: Colors.grey.shade200,
-              child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-            ),
-          )
+              ? AppCachedImage(
+                  url: product.images.first,
+                  fit: BoxFit.cover,
+                  placeholderBackground: Colors.grey.shade200,
+                  errorWidget: Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  ),
+                )
               : Container(
             color: Colors.grey.shade200,
             child: const Icon(Icons.image, size: 50, color: Colors.grey),
@@ -105,6 +104,33 @@ class ProductCard extends StatelessWidget {
                 color: hasInstallment ? const Color(0xFF1A2543) : Colors.black87,
                 fontWeight: FontWeight.bold,
                 fontSize: 11, // Slightly smaller font for subtlety
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 46,
+          left: isArabic ? null : 10,
+          right: isArabic ? 10 : null,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: availabilityColor.withOpacity(0.92),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              availabilityLabel,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
               ),
             ),
           ),

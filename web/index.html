@@ -65,6 +65,20 @@
 </head>
 <body>
   <div class="loading">جاري التحميل...</div>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // فرض استخدام HTML renderer لتجنب مشاكل CanvasKit على بعض الأجهزة/المتصفحات
+    window.flutterConfiguration = { renderer: "html" };
+
+    // إلغاء تسجيل أي Service Worker قديم لمنع تعارض نسخ الملفات المخبأة
+    // يفضل استخدامها إذا كنت ترفع دون ملفات .map أو تغييرات جزئية على مجلد build
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        registrations.forEach(function(reg) {
+          try { reg.unregister(); } catch (e) {}
+        });
+      });
+    }
+  </script>
+  <script src="flutter_bootstrap.js" defer></script>
 </body>
 </html>

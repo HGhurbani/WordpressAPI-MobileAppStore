@@ -327,8 +327,6 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
             itemBuilder: (context, index) {
               return HomeCategoryCard(
                 category: categories[index],
-                showInstallmentOnly: true,
-                showCashOnly: false,
               );
             },
           ),
@@ -409,7 +407,6 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
                       MaterialPageRoute(
                         builder: (_) => ProductListScreen(
                           categoryId: category.id,
-                          showInstallmentOnly: true,
                           titleAr: 'متجر التقسيط',
                           titleEn: 'Installment Store',
                           searchHintAr: 'ابحث عن عروض التقسيط...',

@@ -1,0 +1,45 @@
+{
+  "@@locale": "en",
+
+  "commonClose": "Close",
+
+  "authLoginTitle": "Login",
+  "authLoginSubtitle": "Welcome back, please login to continue",
+  "authUsernameHint": "Username",
+  "authPasswordHint": "Password",
+  "authRememberMe": "Remember me",
+  "authForgotPassword": "Forgot Password?",
+  "authSkip": "Skip",
+  "authLoginButton": "Login",
+
+  "authRegisterTitle": "Register",
+  "authRegisterButton": "Register",
+  "authEmailHint": "Email",
+  "authPhoneHint": "Phone",
+  "authConfirmPasswordHint": "Confirm Password",
+
+  "authLoginSuccess": "Signed in successfully.",
+  "authRegisterSuccess": "Account created successfully.",
+
+  "authEnterUsername": "Please enter username",
+  "authUsernameMinLength": "Username must be at least 3 characters",
+  "authEnterPassword": "Please enter password",
+  "authPasswordMinLength": "Password must be at least 6 characters",
+
+  "authEnterEmailValid": "Please enter a valid email",
+  "authEnterPhone": "Please enter a phone number",
+  "authEnterConfirmPassword": "Please confirm your password",
+  "authPasswordsDoNotMatch": "Passwords do not match",
+
+  "authErrorGenericLogin": "An unexpected error occurred while logging in. Please try again later.",
+  "authErrorGenericRegister": "We couldn't create your account. Please try again later.",
+  "authErrorNoInternet": "Unable to connect. Please check your internet connection.",
+  "authErrorTimeout": "The connection timed out. Please try again.",
+  "authErrorInvalidCredentials": "The login details are incorrect. Please check your username or password.",
+  "authErrorServerIssue": "We are experiencing a server issue right now. Please try again later.",
+  "authErrorEmailExists": "This email is already registered. Please sign in instead.",
+  "authErrorUsernameExists": "This username is already taken. Please choose another.",
+  "authErrorInvalidEmail": "Please enter a valid email address.",
+  "authErrorWeakPassword": "Your password is too weak. Please choose a stronger one."
+}
+

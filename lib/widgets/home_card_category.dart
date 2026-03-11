@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/category.dart';
 import '../screens/product_list_screen.dart';
+import 'app_cached_image.dart';
 
 class HomeCategoryCard extends StatelessWidget {
   final Category category;
@@ -19,8 +20,9 @@ class HomeCategoryCard extends StatelessWidget {
           MaterialPageRoute(
             builder: (ctx) => ProductListScreen(
               categoryId: category.id,
-              // default behavior kept: cash-only when flags not provided
-              showCashOnly: showCashOnly ?? (showInstallmentOnly == true ? false : true),
+              // Requirement: category browsing should show BOTH cash + installment.
+              // Keep flags only as initial preference when explicitly provided.
+              showCashOnly: showCashOnly ?? false,
               showInstallmentOnly: showInstallmentOnly ?? false,
             ),
           ),
@@ -38,12 +40,13 @@ class HomeCategoryCard extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: ClipOval(
-                child: Image.network(
-                  category.image,
+                child: AppCachedImage(
+                  url: category.image,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.image, size: 40, color: Colors.white);
-                  },
+                  placeholderBackground: const Color(0x446FE0DA),
+                  errorWidget: const Center(
+                    child: Icon(Icons.image, size: 40, color: Colors.white),
+                  ),
                 ),
               ),
             ),

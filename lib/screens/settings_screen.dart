@@ -426,15 +426,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             _buildContactTile(
               icon: Icons.phone_android_rounded, // أيقونة واتساب
-              title: "50105685",
+              title: isAr ? "قسم التحصيل" : "Collections",
+              subtitle: "50105685",
               color: Colors.green.shade600, // لون أخضر داكن
               onTap: () => _openWhatsApp("+97450105685", isAr),
             ),
             _buildContactTile(
               icon: Icons.phone_android_rounded,
-              title: "77704313",
+              title: isAr ? "الاستفسار والطلب والمبيعات" : "Inquiries, orders & sales",
+              subtitle: "77704313",
               color: Colors.green.shade600,
               onTap: () => _openWhatsApp("+97477704313", isAr),
+            ),
+            _buildContactTile(
+              icon: Icons.phone_android_rounded,
+              title: isAr ? "الاستفسار والطلب والمبيعات" : "Inquiries, orders & sales",
+              subtitle: "71727771",
+              color: Colors.green.shade600,
+              onTap: () => _openWhatsApp("+97471727771", isAr),
             ),
             _buildContactTile(
               icon: Icons.email_rounded, // أيقونة بريد إلكتروني
@@ -458,6 +467,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildContactTile({
     required IconData icon,
     required String title,
+    String? subtitle,
     required Color color,
     VoidCallback? onTap,
   }) {
@@ -465,7 +475,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
         leading: Icon(icon, color: color, size: 28),
-        title: Text(title, style: const TextStyle(color: Color(0xFF1A2543), fontSize: 16)),
+        title: Text(title, style: const TextStyle(color: Color(0xFF1A2543), fontSize: 16, fontWeight: FontWeight.w700)),
+        subtitle: subtitle == null
+            ? null
+            : Text(
+                subtitle,
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+              ),
         onTap: onTap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         tileColor: Colors.grey.shade50,

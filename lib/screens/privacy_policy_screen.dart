@@ -93,6 +93,31 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
                 _buildSectionHeader(
                   context,
+                  isAr ? 'الاحتفاظ بالبيانات وحذف الحساب' : 'Data Retention and Account Deletion',
+                  Icons.delete_forever_outlined,
+                ),
+                _buildParagraph(
+                  isAr
+                      ? 'نحتفظ ببياناتك طوال مدة استخدامك للتطبيق وحسابك. يمكنك في أي وقت حذف حسابك وطلب حذف بياناتك الشخصية بالكامل.'
+                      : 'We retain your data for as long as you use the app and your account. You may at any time delete your account and request full deletion of your personal data.',
+                  textDirection,
+                ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'لحذف حسابك: من التطبيق انتقل إلى "حسابي" ثم اختر "حذف الحساب". سيُطلب منك التأكيد، وبعد التأكيد يتم حذف الحساب والبيانات المرتبطة به ولا يمكن التراجع عن ذلك.'
+                      : 'To delete your account: In the app, go to "My Account" then choose "Delete Account". You will be asked to confirm; after confirmation your account and associated data will be permanently deleted and cannot be recovered.',
+                  textDirection,
+                ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'بعد حذف الحساب تُزال بياناتك من أنظمتنا وفق إجراءاتنا الأمنية، ولا نطلب منك التواصل مع الدعم أو استخدام طريقة خارج التطبيق لحذف حسابك.'
+                      : 'After account deletion your data is removed from our systems in line with our security procedures. You do not need to contact support or use any method outside the app to delete your account.',
+                  textDirection,
+                ),
+                const SizedBox(height: 20),
+
+                _buildSectionHeader(
+                  context,
                   isAr ? 'نطاق التطبيق' : 'Application Scope',
                   Icons.phone_android,
                 ),

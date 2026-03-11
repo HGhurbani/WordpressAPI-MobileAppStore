@@ -30,7 +30,9 @@ class FaqScreen extends StatelessWidget {
       },
       {
         "q": isAr ? "ما هي المستندات المطلوبة للتقسيط؟" : "What documents are required for installment plans?",
-        "a": isAr ? "عادةً ما نحتاج إلى بطاقة الهوية القطرية، وكشف حساب بنكي لآخر 3-6 أشهر، وشهادة راتب حديثة أو إثبات دخل. قد تختلف المتطلبات بناءً على حالة الطلب." : "Typically, we require a Qatari ID, bank statements for the last 3-6 months, and a recent salary certificate or proof of income. Requirements may vary based on the application."
+        "a": isAr
+            ? "لتقديم طلب التقسيط نحتاج إلى: صورة البطاقة الشخصية سارية، كشف حساب بنكي، وشيكات شخصية للاستلام."
+            : "To apply for installments, we require: a valid ID copy, a bank statement, and personal cheques for pickup."
       },
       {
         "q": isAr ? "هل يمكنني إلغاء طلبي بعد التقديم؟" : "Can I cancel my order after submission?",

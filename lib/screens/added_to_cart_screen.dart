@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../providers/locale_provider.dart';
+import '../widgets/app_cached_image.dart';
 
 class AddedToCartScreen extends StatelessWidget {
   final Product product;
@@ -60,8 +61,8 @@ class AddedToCartScreen extends StatelessWidget {
                 Center(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      product.images.first,
+                    child: AppCachedImage(
+                      url: product.images.first,
                       height: 120,
                       width: 120,
                       fit: BoxFit.cover,

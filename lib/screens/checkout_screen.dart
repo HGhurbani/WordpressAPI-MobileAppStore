@@ -623,16 +623,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         installmentType: installmentType,
         isNewCustomer: !wasLoggedIn,
         customerNote: _noteController.text,
+        // Send plan details for BOTH default & custom plans so admin/app can track installments.
         customInstallment: widget.isCashOrder
             ? null
-            : widget.isCustomPlan
-            ? {
-          'downPayment': widget.downPayment,
-          'remainingAmount': widget.remainingAmount,
-          'monthlyPayment': widget.monthlyPayment,
-          'numberOfInstallments': widget.numberOfInstallments,
-        }
-            : null,
+            : {
+                'downPayment': widget.downPayment,
+                'remainingAmount': widget.remainingAmount,
+                'monthlyPayment': widget.monthlyPayment,
+                'numberOfInstallments': widget.numberOfInstallments,
+              },
       );
 
       if (!mounted) {

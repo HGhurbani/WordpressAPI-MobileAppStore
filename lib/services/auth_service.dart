@@ -5,6 +5,21 @@ import '../models/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 
+class AuthException implements Exception {
+  final String code;
+  final String message;
+  final int? statusCode;
+
+  const AuthException({
+    required this.code,
+    required this.message,
+    this.statusCode,
+  });
+
+  @override
+  String toString() => message;
+}
+
 class AuthService {
   // تسجيل الدخول
   Future<User> login(String username, String password) async {
@@ -47,14 +62,23 @@ class AuthService {
       }
 
       // Get and update FCM token
-      String? fcmToken = await prefs.getString('fcm_token');
+      String? fcmToken = prefs.getString('fcm_token');
       if (fcmToken != null && normalizedEmail != null) {
         await ApiService().updateFcmToken(normalizedEmail, fcmToken);
       }
       return user;
     } else {
-      final errorData = jsonDecode(response.body);
-      throw Exception(errorData['message'] ?? "Login failed with status ${response.statusCode}");
+      final dynamic errorData = jsonDecode(response.body);
+      final Map<String, dynamic> map =
+          (errorData is Map<String, dynamic>) ? errorData : <String, dynamic>{};
+      final String code = (map['code'] is String && (map['code'] as String).isNotEmpty)
+          ? map['code'] as String
+          : 'login_failed';
+      final String message =
+          (map['message'] is String && (map['message'] as String).trim().isNotEmpty)
+              ? (map['message'] as String).trim()
+              : 'Login failed';
+      throw AuthException(code: code, message: message, statusCode: response.statusCode);
     }
   }
 
@@ -100,8 +124,17 @@ class AuthService {
         "phone": customerData["billing"]?["phone"] ?? "",
       });
     } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error["message"] ?? "فشل إنشاء الحساب");
+      final dynamic errorData = jsonDecode(response.body);
+      final Map<String, dynamic> map =
+          (errorData is Map<String, dynamic>) ? errorData : <String, dynamic>{};
+      final String code = (map['code'] is String && (map['code'] as String).isNotEmpty)
+          ? map['code'] as String
+          : 'register_failed';
+      final String message =
+          (map['message'] is String && (map['message'] as String).trim().isNotEmpty)
+              ? (map['message'] as String).trim()
+              : 'Register failed';
+      throw AuthException(code: code, message: message, statusCode: response.statusCode);
     }
   }
 }

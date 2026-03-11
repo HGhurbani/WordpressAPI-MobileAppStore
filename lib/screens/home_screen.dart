@@ -31,6 +31,9 @@ class _HomeScreenState extends State<HomeScreen>
   bool get wantKeepAlive => true;
   final apiService = ApiService();
   Future<List<Category>> _futureCategories = Future.value(const []);
+  late Future<List<Product>> _futureTopRequested;
+  final Map<int, Future<List<Product>>> _futureProductsByCategory = {};
+  late String _activeLanguage;
   final ValueNotifier<int> _notificationCount = ValueNotifier<int>(0);
   late final LocaleProvider _localeProvider;
   late final UserProvider _userProvider;
@@ -51,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     _userProvider = Provider.of<UserProvider>(context, listen: false);
+    _activeLanguage = _localeProvider.locale.languageCode;
 
     _userProvider.addListener(_handleUserChanged);
     _welcomeAnimationController = AnimationController(
@@ -71,14 +75,43 @@ class _HomeScreenState extends State<HomeScreen>
       curve: Curves.easeOutCubic,
     );
 
-    _futureCategories =
-        apiService.getCategories(language: _localeProvider.locale.languageCode);
+    _futureCategories = apiService.getCategories(language: _activeLanguage);
+    _futureTopRequested = apiService.getProductsByIds(
+      _topRequestedIdsFor(_activeLanguage),
+      language: _activeLanguage,
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await _updateNotificationSubscription();
       _startAnimations();
       await _checkFirstTime(); // ← اجعلها async
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final lang = Localizations.localeOf(context).languageCode;
+    if (lang != _activeLanguage) {
+      _resetHomeData(lang);
+    }
+  }
+
+  List<int> _topRequestedIdsFor(String language) {
+    return language == 'ar' ? topRequestedProductIdsAr : topRequestedProductIdsEn;
+  }
+
+  void _resetHomeData(String language) {
+    if (!mounted) return;
+    setState(() {
+      _activeLanguage = language;
+      _futureCategories = apiService.getCategories(language: language);
+      _futureTopRequested = apiService.getProductsByIds(
+        _topRequestedIdsFor(language),
+        language: language,
+      );
+      _futureProductsByCategory.clear();
     });
   }
 
@@ -174,9 +207,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _loadData(String language) {
-    setState(() {
-      _futureCategories = apiService.getCategories(language: language);
-    });
+    _resetHomeData(language);
   }
 
   @override
@@ -599,7 +630,103 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           ElevatedButton.icon(
-            onPressed: () => _openWhatsApp("97450105685"), // ضع رقم الواتساب
+            onPressed: () {
+              final currentLanguage =
+                  Provider.of<LocaleProvider>(context, listen: false)
+                      .locale
+                      .languageCode;
+              final isAr = currentLanguage == "ar";
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (context) {
+                  Widget option({
+                    required String label,
+                    required String number,
+                    required String waNumber,
+                  }) {
+                    return ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.phone_android_rounded,
+                            color: Colors.green),
+                      ),
+                      title: Text(
+                        label,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A2543),
+                        ),
+                      ),
+                      subtitle: Text(
+                        number,
+                        style: TextStyle(color: Colors.grey.shade700),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _openWhatsApp(waNumber);
+                      },
+                    );
+                  }
+
+                  return SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 12),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            isAr ? "تواصل معنا" : "Contact us",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1A2543),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          option(
+                            label: isAr ? "قسم التحصيل" : "Collections",
+                            number: "50105685",
+                            waNumber: "97450105685",
+                          ),
+                          option(
+                            label: isAr
+                                ? "الاستفسار والطلب والمبيعات"
+                                : "Inquiries, orders & sales",
+                            number: "77704313",
+                            waNumber: "97477704313",
+                          ),
+                          option(
+                            label: isAr
+                                ? "الاستفسار والطلب والمبيعات"
+                                : "Inquiries, orders & sales",
+                            number: "71727771",
+                            waNumber: "97471727771",
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6FE0DA),
               foregroundColor: const Color(0xFF1A2543),
@@ -1163,12 +1290,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildTopRequestedSection(String language) {
-    final List<int> selectedIds = language == 'ar'
-        ? topRequestedProductIdsAr
-        : topRequestedProductIdsEn;
-
     return FutureBuilder<List<Product>>(
-      future: apiService.getProductsByIds(selectedIds, language: language),
+      future: _futureTopRequested,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingTopRequestedSection(language);
@@ -1350,12 +1473,17 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildCategorySection(Category category,
       {required String currentLanguage, required String moreLabel}) {
-    return FutureBuilder<List<Product>>(
-      future: apiService.getProducts(
+    final future = _futureProductsByCategory.putIfAbsent(
+      category.id,
+      () => apiService.getProducts(
         categoryId: category.id,
         language: currentLanguage,
         perPage: 10,
       ),
+    );
+
+    return FutureBuilder<List<Product>>(
+      future: future,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return const SizedBox.shrink();
@@ -1403,7 +1531,6 @@ class _HomeScreenState extends State<HomeScreen>
                         MaterialPageRoute(
                           builder: (context) => ProductListScreen(
                             categoryId: category.id,
-                            showCashOnly: true,
                           ),
                         ),
                       );

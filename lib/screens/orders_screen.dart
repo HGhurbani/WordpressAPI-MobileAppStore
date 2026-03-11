@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../models/order.dart';
+import '../models/installment_schedule.dart';
 import '../providers/user_provider.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -20,6 +21,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
   late Animation<double> _fadeAnimation;
   bool _isRefreshing = false;
   String _selectedFilter = 'all';
+  final DateTime _now = DateTime.now();
 
   @override
   void initState() {
@@ -175,6 +177,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
   String _translateStatus(String status, String langCode) {
     final ar = {
       'pending': 'قيد المعالجة',
+      'in-installments': 'جاري التقسيط',
       'processing': 'قيد التنفيذ',
       'completed': 'مكتمل',
       'cancelled': 'ملغي',
@@ -185,6 +188,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
 
     final en = {
       'pending': 'Pending',
+      'in-installments': 'In Installments',
       'processing': 'Processing',
       'completed': 'Completed',
       'cancelled': 'Cancelled',
@@ -201,6 +205,8 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
     switch (status.toLowerCase()) {
       case 'completed':
         return const Color(0xFF4CAF50);
+      case 'in-installments':
+        return const Color(0xFF7E57C2);
       case 'processing':
         return const Color(0xFF6FE0DA);
       case 'pending':
@@ -221,6 +227,8 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
     switch (status.toLowerCase()) {
       case 'completed':
         return Icons.check_circle;
+      case 'in-installments':
+        return Icons.payments;
       case 'processing':
         return Icons.autorenew;
       case 'pending':
@@ -252,9 +260,14 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
         'icon': Icons.all_inclusive,
       },
       {
-        'key': 'pending',
-        'label': isAr ? 'قيد المعالجة' : 'Pending',
-        'icon': Icons.schedule,
+        'key': 'on-hold',
+        'label': isAr ? 'قيد الانتظار' : 'On Hold',
+        'icon': Icons.pause_circle,
+      },
+      {
+        'key': 'in-installments',
+        'label': isAr ? 'جاري التقسيط' : 'In Installments',
+        'icon': Icons.payments,
       },
       {
         'key': 'processing',
@@ -565,6 +578,13 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
     final langCode = Localizations.localeOf(context).languageCode;
     final statusColor = _getStatusColor(order.status);
     final statusIcon = _getStatusIcon(order.status);
+    final schedule = _parseInstallmentSchedule(order);
+    final next = schedule?.nextUnpaid();
+    final paidCount = schedule?.paidCount ?? 0;
+    final totalCount = schedule?.totalCount ?? 0;
+    final remaining = schedule?.remainingTotal;
+    final hasSchedule = schedule != null && totalCount > 0;
+    final nextIsLate = (next != null) ? next.isLate(_now) : false;
 
     return TweenAnimationBuilder(
       duration: Duration(milliseconds: 400 + (index * 100)),
@@ -655,9 +675,9 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                                   elevation: 0,
                                 ),
                                 onPressed: () => _confirmCancelOrder(order.id),
-                                child: const Text(
-                                  'إلغاء',
-                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                child: Text(
+                                  langCode == 'ar' ? 'إلغاء' : 'Cancel',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
                               )
                             else
@@ -687,15 +707,76 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                             ),
                             Expanded(
                               child: _buildInfoItem(
-                                Icons.attach_money,
-                                langCode == 'ar' ? 'المقدم' : 'Down Payment',
-                                order.metaData.containsKey('custom_installment')
-                                    ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}"
-                                    : "${order.total} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
+                                hasSchedule ? (nextIsLate ? Icons.warning_amber_rounded : Icons.event) : Icons.attach_money,
+                                langCode == 'ar' ? 'القسط القادم' : 'Next installment',
+                                hasSchedule && next != null
+                                    ? "${next.amount.toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'} • ${next.dueDate}"
+                                    : (order.metaData.containsKey('custom_installment')
+                                        ? "${(double.tryParse(jsonDecode(order.metaData['custom_installment'])['downPayment'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}"
+                                        : "${order.total} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}"),
                               ),
                             ),
                           ],
                         ),
+                        if (hasSchedule) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: nextIsLate ? Colors.redAccent.withOpacity(0.08) : const Color(0xFF6FE0DA).withOpacity(0.10),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: nextIsLate ? Colors.redAccent.withOpacity(0.25) : const Color(0xFF6FE0DA).withOpacity(0.30),
+                                  ),
+                                ),
+                                child: Text(
+                                  langCode == 'ar'
+                                      ? "مدفوع $paidCount/$totalCount"
+                                      : "Paid $paidCount/$totalCount",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: nextIsLate ? Colors.redAccent : const Color(0xFF1A2543),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (remaining != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A2543).withOpacity(0.06),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF1A2543).withOpacity(0.12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    langCode == 'ar'
+                                        ? "المتبقي ${remaining.toInt()} ر.ق"
+                                        : "Remaining ${remaining.toInt()} QAR",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1A2543),
+                                    ),
+                                  ),
+                                ),
+                              const Spacer(),
+                              if (nextIsLate)
+                                Text(
+                                  langCode == 'ar' ? 'متأخر' : 'Late',
+                                  style: const TextStyle(
+                                    color: Colors.redAccent,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -880,6 +961,8 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
     final Color primaryColor = const Color(0xFF1A2543);
     final Color accentColor = const Color(0xFF6FE0DA);
     final statusColor = _getStatusColor(order.status);
+    final schedule = _parseInstallmentSchedule(order);
+    final remaining = schedule?.remainingTotal;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1028,7 +1111,7 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
                         _buildIconInfoRow(
                           Icons.account_balance_wallet,
                           langCode == 'ar' ? "المبلغ المتبقي" : "Remaining Amount",
-                          "${(double.tryParse(plan['remainingAmount'].toString()) ?? 0).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
+                          "${((remaining ?? (double.tryParse(plan['remainingAmount'].toString()) ?? 0))).toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}",
                           primaryColor,
                           accentColor,
                         ),
@@ -1056,6 +1139,9 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
             ),
           ),
         ],
+
+        // Installment Schedule (tracked payments)
+        ..._buildInstallmentScheduleSection(order, langCode, primaryColor, accentColor),
 
         const SizedBox(height: 24),
 
@@ -1156,5 +1242,192 @@ class _OrdersScreenState extends State<OrdersScreen> with TickerProviderStateMix
         ],
       ),
     );
+  }
+
+  InstallmentSchedule? _parseInstallmentSchedule(Order order) {
+    final raw = order.metaData['installment_schedule'];
+    if (raw == null) return null;
+    try {
+      return InstallmentSchedule.fromDynamic(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  List<Widget> _buildInstallmentScheduleSection(
+    Order order,
+    String langCode,
+    Color primaryColor,
+    Color accentColor,
+  ) {
+    final schedule = _parseInstallmentSchedule(order);
+    final items = schedule?.items ?? const <InstallmentItem>[];
+    final hasCustomPlan = order.metaData.containsKey('custom_installment');
+
+    if (schedule == null || items.isEmpty) {
+      if (!hasCustomPlan) return const <Widget>[];
+      return <Widget>[
+        const SizedBox(height: 20),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.grey.shade600),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  langCode == 'ar'
+                      ? 'جدول الأقساط لم يتم تفعيله بعد من الإدارة.'
+                      : 'Installment schedule has not been enabled by admin yet.',
+                  style: TextStyle(color: Colors.grey.shade700, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    final now = DateTime.now();
+    final paidCount = schedule.paidCount;
+    final totalCount = schedule.totalCount;
+
+    Color statusColor(InstallmentItem it) {
+      if (it.isPaid) return const Color(0xFF4CAF50);
+      if (it.isLate(now)) return Colors.redAccent;
+      return Colors.grey.shade600;
+    }
+
+    String statusText(InstallmentItem it) {
+      if (it.isPaid) return langCode == 'ar' ? 'paid' : 'paid';
+      if (it.isLate(now)) return langCode == 'ar' ? 'late' : 'late';
+      return langCode == 'ar' ? 'due' : 'due';
+    }
+
+    String titleFor(InstallmentItem it) {
+      if (it.no == 0) return langCode == 'ar' ? '0 (مقدم)' : '0 (Down payment)';
+      return langCode == 'ar' ? 'قسط ${it.no}' : 'Installment ${it.no}';
+    }
+
+    String amountText(InstallmentItem it) =>
+        "${it.amount.toInt()} ${langCode == 'ar' ? 'ر.ق' : 'QAR'}";
+
+    return <Widget>[
+      const SizedBox(height: 20),
+      Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accentColor.withOpacity(0.25)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.event_note, color: primaryColor, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  langCode == 'ar' ? 'جدول الأقساط' : 'Installment schedule',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: accentColor.withOpacity(0.25)),
+                  ),
+                  child: Text(
+                    langCode == 'ar'
+                        ? "مدفوع $paidCount/$totalCount"
+                        : "Paid $paidCount/$totalCount",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...items.map((it) {
+              final c = statusColor(it);
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: c.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: c.withOpacity(0.18)),
+                ),
+                child: ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: c.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      it.isPaid ? Icons.check_circle : (it.isLate(now) ? Icons.warning_amber_rounded : Icons.schedule),
+                      color: c,
+                    ),
+                  ),
+                  title: Text(
+                    titleFor(it),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: primaryColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                  subtitle: Text(
+                    langCode == 'ar'
+                        ? "استحقاق: ${it.dueDate} • الحالة: ${statusText(it)}"
+                        : "Due: ${it.dueDate} • Status: ${statusText(it)}",
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                  ),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        amountText(it),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (it.isPaid)
+                        Text(
+                          langCode == 'ar' ? "دفع: ${it.paidAt}" : "Paid: ${it.paidAt}",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF4CAF50),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    ];
   }
 }

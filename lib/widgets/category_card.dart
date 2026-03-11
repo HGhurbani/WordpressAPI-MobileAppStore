@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/category.dart';
 import '../screens/product_list_screen.dart';
+import 'app_cached_image.dart';
 
 class CategoryCard extends StatelessWidget {
   final Category category;
@@ -23,7 +24,6 @@ class CategoryCard extends StatelessWidget {
           MaterialPageRoute(
             builder: (ctx) => ProductListScreen(
               categoryId: category.id,
-              showCashOnly: true,
             ),
           ),
         ),
@@ -38,28 +38,19 @@ class CategoryCard extends StatelessWidget {
               child: AspectRatio( // Maintain aspect ratio for image
                 aspectRatio: 1.0, // Ensures image is square within its space
                 child: category.image.isNotEmpty
-                    ? Image.network(
-                  category.image,
-                  fit: BoxFit.contain, // Ensures the image covers the entire space
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                            : null,
-                        color: const Color(0xFF6FE0DA), // Use accent color for loader
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey.shade200, // Light grey background on error
-                      child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey), // More specific error icon
-                    );
-                  },
-                )
+                    ? AppCachedImage(
+                        url: category.image,
+                        fit: BoxFit.contain,
+                        placeholderBackground: Colors.grey.shade200,
+                        errorWidget: Container(
+                          color: Colors.grey.shade200,
+                          child: const Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
                     : Container(
                   color: Colors.grey.shade200,
                   child: const Icon(Icons.category, size: 50, color: Colors.grey), // Fallback icon

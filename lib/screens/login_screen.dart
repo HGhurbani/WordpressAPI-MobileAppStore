@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:creditphoneqa/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/user_provider.dart';
 import '../services/auth_service.dart';
-import '../providers/locale_provider.dart';
 import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -30,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   bool _rememberMe = false;
   String? _usernameError;
   String? _passwordError;
+  String? _generalError;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -96,57 +97,52 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 
   String? _validateUsername() {
+    final l10n = AppLocalizations.of(context)!;
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
       return null; // Don't show error for empty field until form submission
     }
     if (username.length < 3) {
-      return Provider.of<LocaleProvider>(context, listen: false).locale.languageCode == 'ar'
-          ? "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"
-          : "Username must be at least 3 characters";
+      return l10n.authUsernameMinLength;
     }
     return null;
   }
 
   String? _validatePassword() {
+    final l10n = AppLocalizations.of(context)!;
     final password = _passwordController.text;
     if (password.isEmpty) {
       return null; // Don't show error for empty field until form submission
     }
     if (password.length < 6) {
-      return Provider.of<LocaleProvider>(context, listen: false).locale.languageCode == 'ar'
-          ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل"
-          : "Password must be at least 6 characters";
+      return l10n.authPasswordMinLength;
     }
     return null;
   }
 
-  String _genericLoginErrorMessage(bool isAr) {
-    return isAr
-        ? 'حدث خطأ غير متوقع أثناء تسجيل الدخول. حاول مرة أخرى لاحقًا.'
-        : 'An unexpected error occurred while logging in. Please try again later.';
-  }
-
   String _getFriendlyErrorMessage(dynamic error) {
-    final localeProvider =
-        Provider.of<LocaleProvider>(context, listen: false);
-    final bool isAr = localeProvider.locale.languageCode == 'ar';
-    final String fallbackMessage = _genericLoginErrorMessage(isAr);
+    final l10n = AppLocalizations.of(context)!;
+    final String fallbackMessage = l10n.authErrorGenericLogin;
 
     if (error is SocketException) {
-      return isAr
-          ? 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.'
-          : 'Unable to connect to the server. Please check your internet connection.';
+      return l10n.authErrorNoInternet;
     }
 
     if (error is TimeoutException) {
-      return isAr
-          ? 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.'
-          : 'The connection timed out. Please try again.';
+      return l10n.authErrorTimeout;
     }
 
-    final String errorMessage =
-        error.toString().replaceFirst('Exception: ', '').trim();
+    if (error is AuthException) {
+      final code = error.code.toLowerCase();
+      if (code.contains('invalid_credentials') ||
+          code.contains('incorrect_password') ||
+          code.contains('jwt_auth_invalid_credentials') ||
+          code.contains('woocommerce_rest_invalid_credentials')) {
+        return l10n.authErrorInvalidCredentials;
+      }
+    }
+
+    final String errorMessage = error.toString().trim();
     final String normalizedError = errorMessage.toLowerCase();
 
     if (normalizedError.contains('woocommerce_rest_invalid_credentials') ||
@@ -156,9 +152,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         normalizedError.contains('invalid email') ||
         normalizedError.contains('jwt_auth_invalid_credentials') ||
         normalizedError.contains('incorrect_password')) {
-      return isAr
-          ? 'بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من اسم المستخدم أو كلمة المرور.'
-          : 'The login details are incorrect. Please check your username or password.';
+      return l10n.authErrorInvalidCredentials;
     }
 
     if (normalizedError.contains('woocommerce_rest_cannot') ||
@@ -167,9 +161,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         normalizedError.contains('internal server error') ||
         normalizedError.contains('503') ||
         normalizedError.contains('502')) {
-      return isAr
-          ? 'نواجه مشكلة في الخادم حالياً. يرجى المحاولة لاحقاً.'
-          : 'We are experiencing a server issue right now. Please try again later.';
+      return l10n.authErrorServerIssue;
     }
 
     return fallbackMessage;
@@ -180,17 +172,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     setState(() {
       _usernameError = null;
       _passwordError = null;
+      _generalError = null;
     });
 
     // Validate fields
     final usernameError = _usernameController.text.trim().isEmpty
-        ? (Provider.of<LocaleProvider>(context, listen: false).locale.languageCode == 'ar'
-        ? "يرجى إدخال اسم المستخدم" : "Please enter username")
+        ? AppLocalizations.of(context)!.authEnterUsername
         : _validateUsername();
 
     final passwordError = _passwordController.text.isEmpty
-        ? (Provider.of<LocaleProvider>(context, listen: false).locale.languageCode == 'ar'
-        ? "يرجى إدخال كلمة المرور" : "Please enter password")
+        ? AppLocalizations.of(context)!.authEnterPassword
         : _validatePassword();
 
     if (usernameError != null || passwordError != null) {
@@ -232,7 +223,26 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       // Success haptic feedback
       HapticFeedback.mediumImpact();
 
-      // Navigate with smooth transition
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(l10n.authLoginSuccess)),
+            ],
+          ),
+          backgroundColor: const Color(0xFF6FE0DA),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(milliseconds: 900),
+        ),
+      );
+      await Future.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
 
     } catch (e) {
@@ -241,46 +251,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
       if (mounted) {
         final errorMessage = _getFriendlyErrorMessage(e);
-        _showErrorSnackBar(errorMessage);
+        setState(() => _generalError = errorMessage);
       }
     } finally {
       if (mounted) {
         setState(() => _loading = false);
       }
     }
-  }
-
-  void _showErrorSnackBar(String preparedMessage) {
-    final localeProvider =
-        Provider.of<LocaleProvider>(context, listen: false);
-    final bool isAr = localeProvider.locale.languageCode == 'ar';
-    final String message = preparedMessage.trim().isEmpty
-        ? _genericLoginErrorMessage(isAr)
-        : preparedMessage;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: EdgeInsets.all(16),
-        duration: Duration(seconds: 4),
-        action: SnackBarAction(
-          label: Provider.of<LocaleProvider>(context, listen: false).locale.languageCode == 'ar' ? "إغلاق" : "Close",
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
   }
 
   void _skipLogin() {
@@ -299,18 +276,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    final String language = localeProvider.locale.languageCode;
-    final isAr = language == 'ar';
-
-    final String titleText = isAr ? "تسجيل الدخول" : "Login";
-    final String subtitleText = isAr ? "مرحباً بك، يرجى تسجيل الدخول للمتابعة" : "Welcome back, please login to continue";
-    final String usernameHint = isAr ? "اسم المستخدم" : "Username";
-    final String passwordHint = isAr ? "كلمة المرور" : "Password";
-    final String buttonText = isAr ? "تسجيل الدخول" : "Login";
-    final String skipText = isAr ? "تخطي" : "Skip";
-    final String rememberMeText = isAr ? "تذكرني" : "Remember me";
-    final String forgotPasswordText = isAr ? "نسيت كلمة المرور؟" : "Forgot Password?";
+    final l10n = AppLocalizations.of(context)!;
 
     final size = MediaQuery.of(context).size;
 
@@ -360,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     child: Column(
                       children: [
                         Text(
-                          titleText,
+                          l10n.authLoginTitle,
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -369,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          subtitleText,
+                          l10n.authLoginSubtitle,
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -406,7 +372,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             Icons.person_outline,
                             color: _usernameFocusNode.hasFocus ? const Color(0xFF1A2543) : Colors.grey,
                           ),
-                          hintText: usernameHint,
+                          hintText: l10n.authUsernameHint,
                           errorText: _usernameError,
                           filled: true,
                           fillColor: Colors.white,
@@ -466,7 +432,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               });
                             },
                           ),
-                          hintText: passwordHint,
+                          hintText: l10n.authPasswordHint,
                           errorText: _passwordError,
                           filled: true,
                           fillColor: Colors.white,
@@ -508,7 +474,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         ),
                         Text(
-                          rememberMeText,
+                          l10n.authRememberMe,
                           style: const TextStyle(
                             color: Color(0xFF1A2543),
                             fontSize: 14,
@@ -519,6 +485,34 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   ),
 
                   const SizedBox(height: 30),
+
+                  if (_generalError != null) ...[
+                    SlideTransition(
+                      position: _slideAnimation,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _generalError!,
+                                style: TextStyle(color: Colors.red.shade800, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Login button
                   SlideTransition(
@@ -554,7 +548,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         )
                             : Text(
-                          buttonText,
+                          l10n.authLoginButton,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -586,7 +580,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         );
                       },
                       child: Text(
-                        forgotPasswordText,
+                        l10n.authForgotPassword,
                         style: const TextStyle(
                           color: Color(0xFF6FE0DA),
                           fontSize: 16,
@@ -607,7 +601,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         _skipLogin();
                       },
                       child: Text(
-                        skipText,
+                        l10n.authSkip,
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 15,

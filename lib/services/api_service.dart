@@ -94,12 +94,15 @@ class ApiService {
     }
   }
 
-  // جلب التصنيفات مع دعم اللغة
+  // جلب التصنيفات مع دعم اللغة (per_page=100 لجلب كل التصنيفات بدل الافتراضي 10)
   Future<List<Category>> getCategories({String language = "ar"}) async {
     final response = await http.get(
       _uri(
         '/products/categories',
-        queryParameters: {'lang': language},
+        queryParameters: {
+          'lang': language,
+          'per_page': 100,
+        },
       ),
       headers: _defaultHeaders(),
     );
@@ -202,10 +205,11 @@ class ApiService {
 
     String orderNotes = "Installment Type: $installmentType\n";
     if (!isCashOrder && customInstallment != null) {
+      final months = customInstallment['numberOfInstallments'];
       orderNotes += """
 Down Payment: ${customInstallment['downPayment']} QAR
 Remaining Amount: ${customInstallment['remainingAmount']} QAR
-Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
+Monthly Installments ($months months): ${customInstallment['monthlyPayment']} QAR each
 """;
     }
     orderNotes += "\nNew Customer: ${isNewCustomer ? 'Yes' : 'No'}";
@@ -213,11 +217,53 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       orderNotes += "\n\nCustomer Note: $customerNote";
     }
 
+    Map<String, dynamic>? schedulePayload;
+    if (!isCashOrder && customInstallment != null) {
+      final now = DateTime.now();
+      final baseDue = DateTime(now.year, now.month, now.day);
+      final int months = (customInstallment['numberOfInstallments'] is int)
+          ? customInstallment['numberOfInstallments'] as int
+          : int.tryParse('${customInstallment['numberOfInstallments']}') ?? 0;
+      final double downPayment = (customInstallment['downPayment'] is num)
+          ? (customInstallment['downPayment'] as num).toDouble()
+          : double.tryParse('${customInstallment['downPayment']}') ?? 0.0;
+      final double monthlyPayment = (customInstallment['monthlyPayment'] is num)
+          ? (customInstallment['monthlyPayment'] as num).toDouble()
+          : double.tryParse('${customInstallment['monthlyPayment']}') ?? 0.0;
+
+      String fmt(DateTime d) =>
+          '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+      final items = <Map<String, dynamic>>[
+        {
+          'no': 0,
+          'dueDate': fmt(baseDue),
+          'amount': downPayment,
+          'paidAt': null,
+        },
+      ];
+      for (var i = 1; i <= months; i++) {
+        final due = DateTime(baseDue.year, baseDue.month + i, baseDue.day);
+        items.add({
+          'no': i,
+          'dueDate': fmt(due),
+          'amount': monthlyPayment,
+          'paidAt': null,
+        });
+      }
+      schedulePayload = {
+        'version': 1,
+        'items': items,
+      };
+    }
+
     final metaData = [
       {'key': 'installment_type', 'value': installmentType},
       {'key': 'is_new_customer', 'value': isNewCustomer},
       if (!isCashOrder && customInstallment != null)
         {'key': 'custom_installment', 'value': json.encode(customInstallment)},
+      if (!isCashOrder && schedulePayload != null)
+        {'key': 'installment_schedule', 'value': json.encode(schedulePayload)},
     ];
 
     final orderData = {
@@ -342,14 +388,20 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
 
   Future<bool> deleteAccount(int userId) async {
     try {
-      final response = await http.delete(
-        _uri(
-          '/customers/$userId',
-          queryParameters: {'force': true},
-        ),
-        headers: _defaultHeaders(),
+      final uri = _uri(
+        '/customers/$userId',
+        queryParameters: {'force': 'true'},
       );
-      return response.statusCode == 200 || response.statusCode == 204;
+      final response = await http.delete(uri, headers: _defaultHeaders());
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      }
+
+      print(
+        'Delete account failed: status=${response.statusCode} body=${response.body}',
+      );
+      return false;
     } catch (e) {
       print('Error deleting account: $e');
       return false;
@@ -385,7 +437,7 @@ Monthly Installments (4 months): ${customInstallment['monthlyPayment']} QAR each
       throw Exception('Unexpected customer payload: $firstCustomer');
     }
 
-    final customer = Map<String, dynamic>.from(firstCustomer as Map);
+    final customer = Map<String, dynamic>.from(firstCustomer);
     final dynamic idSource = customer['id'] ?? customer['ID'];
     if (idSource is int) return idSource;
     if (idSource is String) return int.tryParse(idSource);

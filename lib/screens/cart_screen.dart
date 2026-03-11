@@ -6,6 +6,7 @@ import '../providers/locale_provider.dart';
 import '../utils.dart';
 import '../models/product.dart'; // Make sure Product model is imported
 import 'checkout_screen.dart';
+import '../widgets/app_cached_image.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({Key? key}) : super(key: key);
@@ -347,18 +348,23 @@ class CartItemCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: product.images.isNotEmpty
-                    ? Image.network(
-                  product.images.first,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey.shade300,
-                    child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                  ),
-                )
+                    ? AppCachedImage(
+                        url: product.images.first,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        placeholderBackground: Colors.grey.shade300,
+                        errorWidget: Container(
+                          width: 80,
+                          height: 80,
+                          color: Colors.grey.shade300,
+                          child: const Icon(
+                            Icons.broken_image,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
                     : Container(
                   width: 80,
                   height: 80,

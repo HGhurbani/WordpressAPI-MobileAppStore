@@ -6,7 +6,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../firebase_options.dart';
 import '../services/api_service.dart';
-import '../models/order.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -168,7 +167,7 @@ class NotificationService {
 
     try {
       if (_deleteTokenOverride != null) {
-        await _deleteTokenOverride!.call();
+        await _deleteTokenOverride.call();
       } else {
         await _fcm.deleteToken();
       }
@@ -404,6 +403,7 @@ class NotificationService {
   String _translateStatus(String status, String langCode) {
     final ar = {
       'pending': 'قيد المعالجة',
+      'in-installments': 'جاري التقسيط',
       'processing': 'قيد التنفيذ',
       'completed': 'مكتمل',
       'cancelled': 'ملغي',
@@ -414,6 +414,7 @@ class NotificationService {
 
     final en = {
       'pending': 'Pending',
+      'in-installments': 'In Installments',
       'processing': 'Processing',
       'completed': 'Completed',
       'cancelled': 'Cancelled',

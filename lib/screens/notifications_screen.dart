@@ -69,10 +69,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final user = Provider.of<UserProvider>(context, listen: false).user;
     final langCode = Localizations.localeOf(context).languageCode;
 
-    if (user != null && user.email != null) {
+    if (user != null && user.email.isNotEmpty) {
       // In a real app, you might want to show specific loading for this update check
       await NotificationService.instance.checkOrderStatusUpdates(
-        userEmail: user.email!,
+        userEmail: user.email,
         langCode: langCode,
       );
     }
@@ -120,6 +120,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   String translateStatus(String status, String langCode) {
     final ar = {
       'pending': 'قيد المعالجة',
+      'in-installments': 'جاري التقسيط',
       'processing': 'قيد التنفيذ',
       'completed': 'مكتمل',
       'cancelled': 'ملغي',
@@ -130,6 +131,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
     final en = {
       'pending': 'Pending',
+      'in-installments': 'In Installments',
       'processing': 'Processing',
       'completed': 'Completed',
       'cancelled': 'Cancelled',
@@ -163,6 +165,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         case 'completed':
           icon = Icons.check_circle;
           iconColor = AppColors.accentColor;
+          break;
+        case 'in-installments':
+          icon = Icons.payments;
+          iconColor = Colors.deepPurpleAccent;
           break;
         case 'cancelled':
         case 'failed':

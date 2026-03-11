@@ -11,6 +11,7 @@ import '../providers/locale_provider.dart';
 import '../utils.dart';
 import 'full_screen_image_screen.dart';
 import 'added_to_cart_screen.dart';
+import '../widgets/app_cached_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final int productId;
@@ -49,7 +50,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final installmentPlanTitle = isArabic ? "خطة التقسيط" : "Installment Plan";
     final descriptionTitle = isArabic ? "وصف المنتج" : "Product Description";
     final priceTitle = isArabic ? "السعر" : "Price";
-    final productGalleryTitle = isArabic ? "معرض الصور" : "Product Gallery";
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FA),
@@ -80,6 +80,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final priceText = isArabic
               ? "ر.ق ${formatNumber(product.price)}"
               : "QAR ${formatNumber(product.price)}";
+          final availabilityLabel = product.availabilityLabel(isArabic);
+          final availabilityKey = product.availabilityKey();
+          final availabilityColor = availabilityKey == 'out'
+              ? Colors.redAccent
+              : (availabilityKey == 'low' ? const Color(0xFFFF9800) : const Color(0xFF4CAF50));
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -124,6 +129,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: isArabic ? MainAxisAlignment.end : MainAxisAlignment.start,
+                    children: [
+                      Icon(Icons.inventory_2_outlined, color: availabilityColor, size: 20),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: availabilityColor.withOpacity(0.10),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: availabilityColor.withOpacity(0.25)),
+                        ),
+                        child: Text(
+                          availabilityLabel,
+                          style: TextStyle(
+                            color: availabilityColor,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      if (product.stockQuantity != null && product.availabilityKey() != 'out') ...[
+                        const SizedBox(width: 10),
+                        Text(
+                          isArabic ? "الكمية: ${product.stockQuantity}" : "Qty: ${product.stockQuantity}",
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -373,23 +413,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 width: double.infinity,
                 color: Colors.grey.shade200,
                 child: product.images.isNotEmpty
-                    ? Image.network(
-                  product.images[_currentImageIndex],
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                            : null,
-                        color: const Color(0xFF1A2543),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) =>
-                  const Center(child: Icon(Icons.broken_image, size: 60, color: Colors.grey)),
-                )
+                    ? AppCachedImage(
+                        url: product.images[_currentImageIndex],
+                        width: double.infinity,
+                        height: 280,
+                        fit: BoxFit.cover,
+                        placeholderBackground: Colors.grey.shade200,
+                        errorWidget: const Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 60,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
                     : const Center(child: Icon(Icons.image_not_supported, size: 60, color: Colors.grey)),
               ),
             ),
@@ -442,18 +479,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(9),
-                          child: Image.network(
-                            imageUrl,
+                          child: AppCachedImage(
+                            url: imageUrl,
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  width: 80,
-                                  height: 80,
-                                  color: Colors.grey.shade300,
-                                  child: const Icon(Icons.broken_image, size: 30, color: Colors.grey),
-                                ),
+                            placeholderBackground: Colors.grey.shade300,
+                            errorWidget: Container(
+                              width: 80,
+                              height: 80,
+                              color: Colors.grey.shade300,
+                              child: const Icon(
+                                Icons.broken_image,
+                                size: 30,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ),
                         ),
                       ),

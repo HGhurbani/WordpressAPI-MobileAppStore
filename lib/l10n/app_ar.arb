@@ -1,0 +1,45 @@
+{
+  "@@locale": "ar",
+
+  "commonClose": "إغلاق",
+
+  "authLoginTitle": "تسجيل الدخول",
+  "authLoginSubtitle": "مرحباً بك، يرجى تسجيل الدخول للمتابعة",
+  "authUsernameHint": "اسم المستخدم",
+  "authPasswordHint": "كلمة المرور",
+  "authRememberMe": "تذكرني",
+  "authForgotPassword": "نسيت كلمة المرور؟",
+  "authSkip": "تخطي",
+  "authLoginButton": "تسجيل الدخول",
+
+  "authRegisterTitle": "إنشاء حساب",
+  "authRegisterButton": "إنشاء حساب",
+  "authEmailHint": "البريد الإلكتروني",
+  "authPhoneHint": "رقم الجوال",
+  "authConfirmPasswordHint": "تأكيد كلمة المرور",
+
+  "authLoginSuccess": "تم تسجيل الدخول بنجاح.",
+  "authRegisterSuccess": "تم إنشاء الحساب بنجاح.",
+
+  "authEnterUsername": "يرجى إدخال اسم المستخدم",
+  "authUsernameMinLength": "اسم المستخدم يجب أن يكون 3 أحرف على الأقل",
+  "authEnterPassword": "يرجى إدخال كلمة المرور",
+  "authPasswordMinLength": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+
+  "authEnterEmailValid": "يرجى إدخال بريد إلكتروني صالح",
+  "authEnterPhone": "يرجى إدخال رقم جوال",
+  "authEnterConfirmPassword": "يرجى تأكيد كلمة المرور",
+  "authPasswordsDoNotMatch": "كلمة المرور غير متطابقة",
+
+  "authErrorGenericLogin": "حدث خطأ غير متوقع أثناء تسجيل الدخول. حاول مرة أخرى لاحقًا.",
+  "authErrorGenericRegister": "تعذّر إنشاء الحساب. يرجى المحاولة مرة أخرى لاحقًا.",
+  "authErrorNoInternet": "تعذر الاتصال. يرجى التحقق من اتصال الإنترنت.",
+  "authErrorTimeout": "انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.",
+  "authErrorInvalidCredentials": "بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من اسم المستخدم أو كلمة المرور.",
+  "authErrorServerIssue": "نواجه مشكلة في الخادم حالياً. يرجى المحاولة لاحقاً.",
+  "authErrorEmailExists": "هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول بدلاً من ذلك.",
+  "authErrorUsernameExists": "اسم المستخدم مستخدم بالفعل. يرجى اختيار اسم آخر.",
+  "authErrorInvalidEmail": "يرجى إدخال بريد إلكتروني صحيح.",
+  "authErrorWeakPassword": "كلمة المرور ضعيفة. يرجى اختيار كلمة مرور أقوى."
+}
+
