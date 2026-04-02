@@ -1,14 +1,18 @@
 import 'dart:convert';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/app_config.dart';
+import '../models/finance_profile.dart';
 import '../models/product.dart';
 import '../models/category.dart';
 import '../models/order.dart';
 
 class ApiService {
+  static const String _appApiBaseUrl = 'https://creditphoneqatar.com/wp-json/app/v1';
+
   Uri _uri(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -17,6 +21,11 @@ class ApiService {
       path,
       queryParameters: queryParameters,
     );
+  }
+
+  Uri _appUri(String path) {
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    return Uri.parse('$_appApiBaseUrl$normalizedPath');
   }
 
   Map<String, String> _defaultHeaders({
@@ -37,6 +46,31 @@ class ApiService {
     }
 
     return headers;
+  }
+
+  Future<int?> _storedUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id');
+  }
+
+  Future<String?> _storedUserToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_token');
+  }
+
+  Future<Map<String, String>> _jwtHeaders({
+    bool includeJson = false,
+  }) async {
+    final token = await _storedUserToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('missing_user_token');
+    }
+
+    return {
+      'Accept': 'application/json',
+      if (includeJson) 'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
   }
 
   List<dynamic> _ensureList(
@@ -200,6 +234,7 @@ class ApiService {
     Map<String, dynamic>? customInstallment,
     required bool isNewCustomer,
     String? customerNote,
+    int? customerId,
   }) async {
     final isCashOrder = installmentType == 'cash';
 
@@ -260,6 +295,8 @@ Monthly Installments ($months months): ${customInstallment['monthlyPayment']} QA
     final metaData = [
       {'key': 'installment_type', 'value': installmentType},
       {'key': 'is_new_customer', 'value': isNewCustomer},
+      if (customerId != null) {'key': 'finance_profile_customer_id', 'value': customerId},
+      if (!isCashOrder) {'key': 'finance_profile_linked', 'value': true},
       if (!isCashOrder && customInstallment != null)
         {'key': 'custom_installment', 'value': json.encode(customInstallment)},
       if (!isCashOrder && schedulePayload != null)
@@ -269,6 +306,7 @@ Monthly Installments ($months months): ${customInstallment['monthlyPayment']} QA
     final orderData = {
       'status': 'pending',
       'customer_note': orderNotes,
+      if (customerId != null) 'customer_id': customerId,
       'billing': {
         'first_name': customerName,
         'email': customerEmail,
@@ -373,6 +411,174 @@ Monthly Installments ($months months): ${customInstallment['monthlyPayment']} QA
     } catch (e) {
       print("Update Error: $e");
       rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getCustomerById(int customerId) async {
+    final response = await http.get(
+      _uri('/customers/$customerId'),
+      headers: _defaultHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to fetch customer: ${response.statusCode} ${response.body}',
+      );
+    }
+
+    final data = jsonDecode(response.body);
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    throw Exception('Unexpected customer payload: $data');
+  }
+
+  Future<FinanceProfile> getFinanceProfile() async {
+    final userId = await _storedUserId();
+    if (userId == null || userId == 0) {
+      return const FinanceProfile();
+    }
+
+    final customer = await getCustomerById(userId);
+    final metaData = customer['meta_data'];
+    if (metaData is List) {
+      return FinanceProfile.fromCustomerMeta(metaData);
+    }
+    return const FinanceProfile();
+  }
+
+  Future<bool> updateFinanceProfileAnswers({
+    required String residencyInQatar,
+    required String haveBankChecks,
+    String? canGetBankChecks,
+  }) async {
+    final userId = await _storedUserId();
+    if (userId == null || userId == 0) {
+      throw Exception('user_id_missing');
+    }
+
+    final customer = await getCustomerById(userId);
+    final existingMetaData = customer['meta_data'] is List
+        ? List<dynamic>.from(customer['meta_data'] as List)
+        : const <dynamic>[];
+
+    Map<String, dynamic> buildFinanceMetaEntry(String key, String value) {
+      final existingId = _latestMetaIdForKey(existingMetaData, key);
+      return {
+        if (existingId != null) 'id': existingId,
+        'key': key,
+        'value': value,
+      };
+    }
+
+    final body = {
+      'meta_data': [
+        buildFinanceMetaEntry(
+          'finance_residency_in_qatar',
+          residencyInQatar,
+        ),
+        buildFinanceMetaEntry(
+          'finance_have_bank_checks',
+          haveBankChecks,
+        ),
+        buildFinanceMetaEntry(
+          'finance_can_get_bank_checks',
+          haveBankChecks == 'No' ? (canGetBankChecks ?? '') : '',
+        ),
+      ],
+    };
+
+    final response = await http.put(
+      _uri('/customers/$userId'),
+      headers: _defaultHeaders(includeJson: true),
+      body: jsonEncode(body),
+    );
+
+    return response.statusCode == 200;
+  }
+
+  int? _latestMetaIdForKey(List<dynamic> metaData, String key) {
+    int? latestId;
+    for (final item in metaData) {
+      if (item is! Map) continue;
+      final entry = Map<String, dynamic>.from(item);
+      if (entry['key']?.toString() != key) continue;
+
+      final rawId = entry['id'];
+      final int? parsedId;
+      if (rawId is int) {
+        parsedId = rawId;
+      } else if (rawId is String) {
+        parsedId = int.tryParse(rawId);
+      } else if (rawId is double) {
+        parsedId = rawId.toInt();
+      } else {
+        parsedId = null;
+      }
+
+      if (parsedId == null) continue;
+      if (latestId == null || parsedId > latestId) {
+        latestId = parsedId;
+      }
+    }
+    return latestId;
+  }
+
+  Future<void> uploadFinanceDocument({
+    required String category,
+    required PlatformFile file,
+  }) async {
+    final request = http.MultipartRequest(
+      'POST',
+      _appUri('/profile-documents/upload'),
+    );
+    request.headers.addAll(await _jwtHeaders());
+    request.fields['category'] = category;
+
+    if (file.bytes != null) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          file.bytes!,
+          filename: file.name,
+        ),
+      );
+    } else if (file.path != null && file.path!.isNotEmpty) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          file.path!,
+          filename: file.name,
+        ),
+      );
+    } else {
+      throw Exception('invalid_file');
+    }
+
+    final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('Failed to upload document: $responseBody');
+    }
+  }
+
+  Future<void> deleteFinanceDocument({
+    required String category,
+    required String documentId,
+  }) async {
+    final response = await http.delete(
+      _appUri('/profile-documents'),
+      headers: await _jwtHeaders(includeJson: true),
+      body: jsonEncode({
+        'category': category,
+        'document_id': documentId,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Failed to delete document: ${response.statusCode} ${response.body}',
+      );
     }
   }
 

@@ -265,7 +265,7 @@ class ProfileScreen extends StatelessWidget {
                   "${isArabic ? 'البريد الإلكتروني:' : 'Email:'} ${user.email}",
                   style: const TextStyle(fontSize: 15, color: Colors.white70),
                 ),
-                if (user.phone != null && user.phone!.isNotEmpty) // عرض رقم الهاتف إذا كان موجوداً
+                if (user.phone.isNotEmpty) // عرض رقم الهاتف إذا كان موجوداً
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0),
                     child: Text(
@@ -278,23 +278,28 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 30), // مسافة أكبر
+        const SizedBox(height: 30),
 
-        // أقسام الخيارات
         _buildSectionTitle(isArabic ? 'إدارة الحساب' : 'Account Management', context),
         const SizedBox(height: 10),
 
         _buildOptionCard(
           context,
-          icon: Icons.shopping_bag_rounded, // أيقونة محدثة
+          icon: Icons.shopping_bag_rounded,
           label: isArabic ? 'طلباتي' : 'My Orders',
           onTap: () => Navigator.pushNamed(context, '/orders'),
         ),
         _buildOptionCard(
           context,
-          icon: Icons.settings_rounded, // أيقونة محدثة
-          label: isArabic ? 'الإعدادات / Settings' : 'الإعدادات / Settings', // نص أبسط
-          onTap: () => Navigator.pushNamed(context, '/settings'),
+          icon: Icons.person_rounded,
+          label: isArabic ? 'بياناتي وملف التقسيط' : 'My data & installment profile',
+          onTap: () => Navigator.pushNamed(context, '/settings', arguments: 'account'),
+        ),
+        _buildOptionCard(
+          context,
+          icon: Icons.settings_rounded,
+          label: isArabic ? 'إعدادات التطبيق (لغة، إشعارات)' : 'App settings (language, notifications)',
+          onTap: () => Navigator.pushNamed(context, '/settings', arguments: 'app'),
         ),
         // يمكنك إضافة المزيد من الخيارات هنا مثل:
         // _buildOptionCard(

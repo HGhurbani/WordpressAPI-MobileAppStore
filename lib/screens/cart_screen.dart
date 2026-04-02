@@ -6,6 +6,7 @@ import '../providers/locale_provider.dart';
 import '../utils.dart';
 import '../models/product.dart'; // Make sure Product model is imported
 import 'checkout_screen.dart';
+import 'product_detail_screen.dart';
 import '../widgets/app_cached_image.dart';
 
 class CartScreen extends StatelessWidget {
@@ -65,21 +66,31 @@ class CartScreen extends StatelessWidget {
                       // Action already handled by confirmDismiss, but good to have
                       // cartProvider.removeFromCart(product);
                     },
-                    child: CartItemCard(
-                      product: product,
-                      quantity: cartItem.quantity,
-                      isArabic: isArabic,
-                      priceText: priceText,
-                      quantityText: quantityText,
-                      onRemove: () {
-                        if (cartItem.quantity == 1) {
-                          _showDeleteConfirmationDialog(context, product, cartProvider, isArabic);
-                        } else {
-                          cartProvider.decreaseQuantity(product);
-                        }
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ProductDetailScreen(productId: product.id),
+                          ),
+                        );
                       },
-                      onAdd: () => cartProvider.increaseQuantity(product),
-                      onDelete: () => _showDeleteConfirmationDialog(context, product, cartProvider, isArabic),
+                      child: CartItemCard(
+                        product: product,
+                        quantity: cartItem.quantity,
+                        isArabic: isArabic,
+                        priceText: priceText,
+                        quantityText: quantityText,
+                        onRemove: () {
+                          if (cartItem.quantity == 1) {
+                            _showDeleteConfirmationDialog(context, product, cartProvider, isArabic);
+                          } else {
+                            cartProvider.decreaseQuantity(product);
+                          }
+                        },
+                        onAdd: () => cartProvider.increaseQuantity(product),
+                        onDelete: () => _showDeleteConfirmationDialog(context, product, cartProvider, isArabic),
+                      ),
                     ),
                   );
                 },

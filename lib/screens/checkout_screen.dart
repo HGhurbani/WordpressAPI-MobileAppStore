@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../models/finance_profile.dart';
+import '../models/profile_document.dart';
 import '../providers/cart_provider.dart';
 import '../providers/user_provider.dart';
 import '../providers/locale_provider.dart';
@@ -51,6 +55,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _residentInQatar;
   String? _hasChecks;
   String? _canObtainChecks;
+  FinanceProfile _financeProfile = const FinanceProfile();
+  bool _financeLoading = false;
+  PlatformFile? _pendingFrontFile;
+  PlatformFile? _pendingBackFile;
+  final List<PlatformFile> _pendingBankFiles = [];
+  final List<PlatformFile> _pendingAdditionalFiles = [];
+  final Set<String> _deletedBankStatementIds = <String>{};
+  final Set<String> _deletedAdditionalAttachmentIds = <String>{};
+  bool _deleteFrontDocument = false;
+  bool _deleteBackDocument = false;
 
   final primaryColor = const Color(0xFF1A2543);
   final secondaryColor = const Color(0xFFDEE3ED);
@@ -64,6 +78,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _emailController.text = userProvider.user?.email ?? '';
       _phoneController.text = userProvider.user?.phone ?? '';
       _fullNameController.text = userProvider.user?.username ?? '';
+      _loadFinanceProfile();
     }
   }
 
@@ -101,6 +116,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               children: [
                 _buildSectionHeader(isAr ? "معلومات الاتصال" : "Contact Information"),
                 _buildUserForm(isAr, isLoggedIn),
+                if (!widget.isCashOrder) ...[
+                  const SizedBox(height: 20),
+                  _buildSectionHeader(
+                    isAr ? "الأهلية والمرفقات" : "Eligibility & Attachments",
+                  ),
+                  _buildInstallmentRequirementsSection(isAr),
+                ],
                 const SizedBox(height: 20),
                 _buildSectionHeader(isAr ? "ملخص الطلب" : "Order Summary"),
                 _buildOrderSummary(isAr, cartItems),
@@ -186,27 +208,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 15),
-              _buildRadioQuestion(
-                isAr ? "هل تقيم في قطر؟" : "Are you resident in Qatar?",
-                _residentInQatar,
-                    (v) => setState(() => _residentInQatar = v),
-                isAr,
-              ),
-              if (_residentInQatar == "yes")
-                _buildRadioQuestion(
-                  isAr ? "هل لديك شيكات؟" : "Do you have checks?",
-                  _hasChecks,
-                      (v) => setState(() => _hasChecks = v),
-                  isAr,
-                ),
-              if (_hasChecks == "no" && _residentInQatar == "yes") // Only show if resident and no checks
-                _buildRadioQuestion(
-                  isAr ? "هل يمكنك استخراج شيكات؟" : "Can you obtain checks?",
-                  _canObtainChecks,
-                      (v) => setState(() => _canObtainChecks = v),
-                  isAr,
-                ),
             ],
             const SizedBox(height: 15),
             _buildTextField(_noteController, isAr ? "ملاحظة (اختياري)" : "Note (optional)", maxLines: 3),
@@ -272,11 +273,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         ),
         Row( // Use Row for better control over spacing
-          children: ['yes', 'no'].map((option) {
+          children: ['Yes', 'No'].map((option) {
             return Expanded( // Use Expanded to give equal space
               child: RadioListTile(
                 activeColor: primaryColor,
-                title: Text(option == 'yes' ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No")),
+                title: Text(option == 'Yes' ? (isAr ? "نعم" : "Yes") : (isAr ? "لا" : "No")),
                 value: option,
                 groupValue: value,
                 onChanged: onChanged,
@@ -436,6 +437,480 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
+  Future<void> _loadFinanceProfile() async {
+    setState(() => _financeLoading = true);
+    try {
+      final profile = await _apiService.getFinanceProfile();
+      if (!mounted) return;
+      setState(() {
+        _financeProfile = profile;
+        _residentInQatar = profile.residencyInQatar;
+        _hasChecks = profile.haveBankChecks;
+        _canObtainChecks = profile.canGetBankChecks;
+      });
+    } catch (_) {
+      if (!mounted) return;
+    } finally {
+      if (mounted) {
+        setState(() => _financeLoading = false);
+      }
+    }
+  }
+
+  Widget _buildInstallmentRequirementsSection(bool isAr) {
+    if (_financeLoading) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildRadioQuestion(
+              isAr ? "هل تقيم في قطر؟" : "Do you live in Qatar?",
+              _residentInQatar,
+              (v) => setState(() {
+                _residentInQatar = v;
+                if (v != 'Yes') {
+                  _hasChecks = null;
+                  _canObtainChecks = null;
+                }
+              }),
+              isAr,
+            ),
+            if (_residentInQatar == 'Yes')
+              _buildRadioQuestion(
+                isAr
+                    ? "هل لديك شيكات بنكية باسمك؟"
+                    : "Do you have bank checks in your name?",
+                _hasChecks,
+                (v) => setState(() {
+                  _hasChecks = v;
+                  if (v != 'No') {
+                    _canObtainChecks = null;
+                  }
+                }),
+                isAr,
+              ),
+            if (_residentInQatar == 'Yes' && _hasChecks == 'No')
+              _buildRadioQuestion(
+                isAr
+                    ? "هل يمكنك استخراج شيكات بنكية باسمك؟"
+                    : "Can you issue bank checks in your name?",
+                _canObtainChecks,
+                (v) => setState(() => _canObtainChecks = v),
+                isAr,
+              ),
+            const SizedBox(height: 8),
+            _buildCheckoutAttachmentGroup(
+              title: isAr
+                  ? 'صورة البطاقة الشخصية (الوجه الأمامي) *'
+                  : 'ID Card (Front) *',
+              existingDocuments: _visibleSingleDocument(
+                _financeProfile.idCardFront,
+                deleted: _deleteFrontDocument,
+              ),
+              pendingFiles: _pendingFrontFile == null ? const [] : [_pendingFrontFile!],
+              onPickFiles: () => _pickFiles(
+                isAr: isAr,
+                category: 'id_card_front',
+              ),
+              onRemoveExisting: (doc) => setState(() {
+                _deleteFrontDocument = true;
+              }),
+              onRemovePending: (index) => setState(() {
+                _pendingFrontFile = null;
+                _deleteFrontDocument = false;
+              }),
+              isAr: isAr,
+            ),
+            const SizedBox(height: 16),
+            _buildCheckoutAttachmentGroup(
+              title: isAr
+                  ? 'صورة البطاقة الشخصية (الوجه الخلفي) *'
+                  : 'ID Card (Back) *',
+              existingDocuments: _visibleSingleDocument(
+                _financeProfile.idCardBack,
+                deleted: _deleteBackDocument,
+              ),
+              pendingFiles: _pendingBackFile == null ? const [] : [_pendingBackFile!],
+              onPickFiles: () => _pickFiles(
+                isAr: isAr,
+                category: 'id_card_back',
+              ),
+              onRemoveExisting: (doc) => setState(() {
+                _deleteBackDocument = true;
+              }),
+              onRemovePending: (index) => setState(() {
+                _pendingBackFile = null;
+                _deleteBackDocument = false;
+              }),
+              isAr: isAr,
+            ),
+            const SizedBox(height: 16),
+            _buildCheckoutAttachmentGroup(
+              title: isAr
+                  ? 'كشف حساب آخر 3 شهور *'
+                  : 'Bank Statements (Last 3 Months) *',
+              existingDocuments: _financeProfile.bankStatements
+                  .where((doc) => !_deletedBankStatementIds.contains(doc.id))
+                  .toList(),
+              pendingFiles: _pendingBankFiles,
+              onPickFiles: () => _pickFiles(
+                isAr: isAr,
+                category: 'bank_statements',
+                allowMultiple: true,
+              ),
+              onRemoveExisting: (doc) => setState(() {
+                _deletedBankStatementIds.add(doc.id);
+              }),
+              onRemovePending: (index) => setState(() {
+                _pendingBankFiles.removeAt(index);
+              }),
+              isAr: isAr,
+            ),
+            const SizedBox(height: 16),
+            _buildCheckoutAttachmentGroup(
+              title: isAr
+                  ? 'مرفقات إضافية (اختياري)'
+                  : 'Additional Attachments (Optional)',
+              existingDocuments: _financeProfile.additionalAttachments
+                  .where((doc) => !_deletedAdditionalAttachmentIds.contains(doc.id))
+                  .toList(),
+              pendingFiles: _pendingAdditionalFiles,
+              onPickFiles: () => _pickFiles(
+                isAr: isAr,
+                category: 'additional_attachments',
+                allowMultiple: true,
+              ),
+              onRemoveExisting: (doc) => setState(() {
+                _deletedAdditionalAttachmentIds.add(doc.id);
+              }),
+              onRemovePending: (index) => setState(() {
+                _pendingAdditionalFiles.removeAt(index);
+              }),
+              isAr: isAr,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<ProfileDocument> _visibleSingleDocument(
+    ProfileDocument? document, {
+    required bool deleted,
+  }) {
+    if (document == null || deleted) {
+      return const [];
+    }
+    return [document];
+  }
+
+  Future<void> _pickFiles({
+    required bool isAr,
+    required String category,
+    bool allowMultiple = false,
+  }) async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: allowMultiple,
+      withData: true,
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'],
+    );
+
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      if (category == 'id_card_front') {
+        _pendingFrontFile = result.files.first;
+        _deleteFrontDocument = false;
+      } else if (category == 'id_card_back') {
+        _pendingBackFile = result.files.first;
+        _deleteBackDocument = false;
+      } else if (category == 'bank_statements') {
+        _pendingBankFiles.addAll(result.files);
+      } else if (category == 'additional_attachments') {
+        _pendingAdditionalFiles.addAll(result.files);
+      }
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isAr ? 'تمت إضافة الملفات إلى الطلب.' : 'Files added to the order.',
+        ),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  Widget _buildCheckoutAttachmentGroup({
+    required String title,
+    required List<ProfileDocument> existingDocuments,
+    required List<PlatformFile> pendingFiles,
+    required VoidCallback onPickFiles,
+    required ValueChanged<ProfileDocument> onRemoveExisting,
+    required ValueChanged<int> onRemovePending,
+    required bool isAr,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: secondaryColor.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: primaryColor.withOpacity(0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2543),
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onPickFiles,
+                icon: const Icon(Icons.upload_file_rounded),
+                label: Text(isAr ? 'اختيار' : 'Choose'),
+              ),
+            ],
+          ),
+          if (existingDocuments.isEmpty && pendingFiles.isEmpty)
+            Text(
+              isAr ? 'لا توجد ملفات محددة.' : 'No files selected.',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
+          ...existingDocuments.map(
+            (doc) => ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.link_rounded),
+              title: Text(
+                doc.name.isEmpty ? doc.url : doc.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(isAr ? 'من البروفايل' : 'From profile'),
+              onTap: () => _openDocument(doc.url, isAr),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                onPressed: () => onRemoveExisting(doc),
+              ),
+            ),
+          ),
+          ...pendingFiles.asMap().entries.map(
+            (entry) => ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.attach_file_rounded),
+              title: Text(
+                entry.value.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(isAr ? 'جديد وسيتم رفعه عند الإرسال' : 'New, will upload on submit'),
+              trailing: IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => onRemovePending(entry.key),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openDocument(String url, bool isAr) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isAr ? 'تعذر فتح المرفق.' : 'Could not open the attachment.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  bool _validateInstallmentRequirements(bool isAr) {
+    if (_residentInQatar == null) {
+      _showCheckoutError(
+        isAr
+            ? "يرجى تحديد ما إذا كنت تقيم في قطر."
+            : "Please specify if you live in Qatar.",
+      );
+      return false;
+    }
+    if (_residentInQatar == 'No') {
+      _showCheckoutError(
+        isAr
+            ? "لا يمكن الطلب إلا للمقيمين في قطر."
+            : "Orders are only allowed for residents in Qatar.",
+      );
+      return false;
+    }
+    if (_hasChecks == null) {
+      _showCheckoutError(
+        isAr
+            ? "يرجى تحديد ما إذا كان لديك شيكات بنكية باسمك."
+            : "Please specify whether you have bank checks in your name.",
+      );
+      return false;
+    }
+    if (_hasChecks == 'No') {
+      if (_canObtainChecks == null) {
+        _showCheckoutError(
+          isAr
+              ? "يرجى تحديد ما إذا كان يمكنك استخراج شيكات بنكية باسمك."
+              : "Please specify whether you can issue bank checks in your name.",
+        );
+        return false;
+      }
+      if (_canObtainChecks == 'No') {
+        _showCheckoutError(
+          isAr
+              ? "لا يمكن الطلب إلا بشيكات شخصية باسمك أو إمكانية استخراجها."
+              : "Orders are only allowed with personal checks in your name or ability to issue them.",
+        );
+        return false;
+      }
+    }
+
+    final hasFront = _pendingFrontFile != null ||
+        (_financeProfile.idCardFront != null && !_deleteFrontDocument);
+    final hasBack = _pendingBackFile != null ||
+        (_financeProfile.idCardBack != null && !_deleteBackDocument);
+    final hasBankStatements =
+        _pendingBankFiles.isNotEmpty ||
+            _financeProfile.bankStatements
+                .where((doc) => !_deletedBankStatementIds.contains(doc.id))
+                .isNotEmpty;
+
+    if (!hasFront) {
+      _showCheckoutError(
+        isAr
+            ? "يرجى رفع صورة البطاقة (الوجه الأمامي)."
+            : "Please upload ID card (front).",
+      );
+      return false;
+    }
+    if (!hasBack) {
+      _showCheckoutError(
+        isAr
+            ? "يرجى رفع صورة البطاقة (الوجه الخلفي)."
+            : "Please upload ID card (back).",
+      );
+      return false;
+    }
+    if (!hasBankStatements) {
+      _showCheckoutError(
+        isAr
+            ? "يرجى رفع كشف حساب آخر 3 شهور."
+            : "Please upload your bank statements for the last 3 months.",
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  void _showCheckoutError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _syncFinanceProfileChanges() async {
+    await _apiService.updateFinanceProfileAnswers(
+      residencyInQatar: _residentInQatar!,
+      haveBankChecks: _hasChecks!,
+      canGetBankChecks: _hasChecks == 'No' ? _canObtainChecks : null,
+    );
+
+    if (_deleteFrontDocument && _financeProfile.idCardFront != null) {
+      await _apiService.deleteFinanceDocument(
+        category: 'id_card_front',
+        documentId: _financeProfile.idCardFront!.id,
+      );
+    }
+    if (_deleteBackDocument && _financeProfile.idCardBack != null) {
+      await _apiService.deleteFinanceDocument(
+        category: 'id_card_back',
+        documentId: _financeProfile.idCardBack!.id,
+      );
+    }
+
+    for (final id in _deletedBankStatementIds) {
+      await _apiService.deleteFinanceDocument(
+        category: 'bank_statements',
+        documentId: id,
+      );
+    }
+    for (final id in _deletedAdditionalAttachmentIds) {
+      await _apiService.deleteFinanceDocument(
+        category: 'additional_attachments',
+        documentId: id,
+      );
+    }
+
+    if (_pendingFrontFile != null) {
+      await _apiService.uploadFinanceDocument(
+        category: 'id_card_front',
+        file: _pendingFrontFile!,
+      );
+    }
+    if (_pendingBackFile != null) {
+      await _apiService.uploadFinanceDocument(
+        category: 'id_card_back',
+        file: _pendingBackFile!,
+      );
+    }
+
+    for (final file in _pendingBankFiles) {
+      await _apiService.uploadFinanceDocument(
+        category: 'bank_statements',
+        file: file,
+      );
+    }
+    for (final file in _pendingAdditionalFiles) {
+      await _apiService.uploadFinanceDocument(
+        category: 'additional_attachments',
+        file: file,
+      );
+    }
+
+    _financeProfile = await _apiService.getFinanceProfile();
+  }
+
   Future<void> _ensureUserIsRegisteredAndLoggedIn({
     required String username,
     required String email,
@@ -541,36 +1016,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final wasLoggedIn = userProvider.isLoggedIn;
 
-    if (!wasLoggedIn) {
-      if (_residentInQatar == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isAr ? "يرجى تحديد ما إذا كنت تقيم في قطر." : "Please specify if you are resident in Qatar."),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      if (_residentInQatar == "yes") {
-        if (_hasChecks == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isAr ? "يرجى تحديد ما إذا كان لديك شيكات." : "Please specify if you have checks."),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
-        if (_hasChecks == "no" && _canObtainChecks == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(isAr ? "يرجى تحديد ما إذا كان يمكنك استخراج شيكات." : "Please specify if you can obtain checks."),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
-        }
-      }
+    if (!widget.isCashOrder && !_validateInstallmentRequirements(isAr)) {
+      return;
     }
 
 
@@ -611,6 +1058,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
 
+      final customerId = userProvider.user?.id;
+
+      if (!widget.isCashOrder) {
+        await _syncFinanceProfileChanges();
+      }
+
       final installmentType = widget.isCashOrder
           ? 'cash'
           : (widget.isCustomPlan ? 'custom' : 'default');
@@ -623,6 +1076,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         installmentType: installmentType,
         isNewCustomer: !wasLoggedIn,
         customerNote: _noteController.text,
+        customerId: customerId,
         // Send plan details for BOTH default & custom plans so admin/app can track installments.
         customInstallment: widget.isCashOrder
             ? null

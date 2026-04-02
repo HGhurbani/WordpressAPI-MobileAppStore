@@ -27,20 +27,105 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
   final Color primaryColor = const Color(0xFF1A2543); // أزرق داكن
   final Color accentColor = const Color(0xFF6FE0DA); // فيروزي
 
-  // دالة لاستخلاص القيم الرقمية من النصوص التي قد تحتوي على تنسيق HTML أو مسافات
-  double _extractFlexibleValue(String text, List<String> patterns) {
-    // استخدم html parser لتجريد HTML بشكل موثوق
+  String _cleanInstallmentText(String text) {
     final document = parse(text);
-    final String cleanText = document.body?.text ?? text;
+    return (document.body?.text ?? text)
+        .replaceAll('\u00A0', ' ')
+        .replaceAll('\r', '\n')
+        .trim();
+  }
 
-    for (var pattern in patterns) {
-      final match = RegExp(pattern).firstMatch(cleanText);
-      if (match != null && match.groupCount >= 1) {
-        // إزالة الفواصل والنقاط التي قد تكون جزءًا من تنسيق الرقم
-        final value = match.group(1)!.replaceAll(RegExp(r'[^\d.]'), '');
-        return double.tryParse(value) ?? 0.0;
+  String _injectInstallmentLabelBreaks(String text) {
+    return text.replaceAllMapped(
+      RegExp(
+        r'(down payment|first payment|monthly installments?|monthly installment value|monthly payments?|number of installments|total amount|total price|total|المقدم|الدفعة الأولى|دفعة أولى|عدد الأقساط|قيمة كل قسط|قيمة القسط الشهري|إجمالي المبلغ|إجمالي السعر|الإجمالي الكلي|الإجمالي|المجموع)',
+        caseSensitive: false,
+      ),
+      (match) {
+        final value = match.group(0) ?? '';
+        return '\n$value';
+      },
+    ).trim();
+  }
+
+  String _normalizeDigits(String value) {
+    const arabicDigits = {
+      '٠': '0',
+      '١': '1',
+      '٢': '2',
+      '٣': '3',
+      '٤': '4',
+      '٥': '5',
+      '٦': '6',
+      '٧': '7',
+      '٨': '8',
+      '٩': '9',
+    };
+
+    return value.split('').map((char) => arabicDigits[char] ?? char).join();
+  }
+
+  List<String> _splitInstallmentLines(String text) {
+    return _injectInstallmentLabelBreaks(_cleanInstallmentText(text))
+        .split(RegExp(r'[\n]+'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+  }
+
+  bool _lineContainsAnyKeyword(String line, List<String> keywords) {
+    final lowerLine = line.toLowerCase();
+    return keywords.any((keyword) => lowerLine.contains(keyword.toLowerCase()));
+  }
+
+  List<double> _extractNumbersFromLine(String line) {
+    final normalizedLine = _normalizeDigits(line);
+    return RegExp(r'[\d,]+(?:\.\d+)?')
+        .allMatches(normalizedLine)
+        .map((match) => (match.group(0) ?? '').replaceAll(',', ''))
+        .map((value) => double.tryParse(value))
+        .whereType<double>()
+        .toList();
+  }
+
+  double _extractAmountFromLines(String text, List<String> keywords) {
+    for (final line in _splitInstallmentLines(text)) {
+      if (!_lineContainsAnyKeyword(line, keywords)) continue;
+      final numbers = _extractNumbersFromLine(line);
+      if (numbers.isNotEmpty) {
+        // Amount lines may include the months count first, so pick the last number.
+        return numbers.last;
       }
     }
+    return 0.0;
+  }
+
+  double _extractInstallmentCount(String text) {
+    final cleanText = _cleanInstallmentText(text);
+    final countPatterns = [
+      RegExp(r'عدد\s*الأقساط[:\s-]*([0-9٠-٩]+)', caseSensitive: false),
+      RegExp(r'([0-9٠-٩]+)\s*أقساط', caseSensitive: false),
+      RegExp(r'number\s+of\s+installments[:\s-]*([0-9٠-٩]+)', caseSensitive: false),
+      RegExp(r'([0-9٠-٩]+)\s*monthly\s*(?:installments|payments)', caseSensitive: false),
+      RegExp(r'monthly\s*(?:installments|payments)\s*for\s*([0-9٠-٩]+)\s*months?', caseSensitive: false),
+      RegExp(r'for\s*([0-9٠-٩]+)\s*months?', caseSensitive: false),
+    ];
+
+    for (final pattern in countPatterns) {
+      final match = pattern.firstMatch(cleanText);
+      if (match == null) continue;
+      final value = _normalizeDigits(match.group(1) ?? '');
+      return double.tryParse(value) ?? 0.0;
+    }
+
+    for (final line in _splitInstallmentLines(cleanText)) {
+      if (!_lineContainsAnyKeyword(line, ['قسط', 'installment', 'payment'])) continue;
+      final numbers = _extractNumbersFromLine(line);
+      if (numbers.isNotEmpty) {
+        return numbers.first;
+      }
+    }
+
     return 0.0;
   }
 
@@ -64,40 +149,49 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
     for (var item in installmentItems) {
       final desc = item.product.shortDescription;
 
-      final firstPayment = _extractFlexibleValue(desc, [
-        r'(?:المقدم|مقدم)[:\s]*([\d,\.]+)',
-        r'(?:الدفعة\s*الأولى|دفعة\s*أولى)[:\s]*([\d,\.]+)',
+      final firstPayment = _extractAmountFromLines(desc, [
+        'المقدم',
+        'مقدم',
+        'الدفعة الأولى',
+        'دفعة أولى',
+        'down payment',
+        'first payment',
       ]);
 
-      final totalAmount = _extractFlexibleValue(desc, [
-        r'إجمالي\s*المبلغ[:\s]*([\d,\.]+)',
-        r'الإجمالي[:\s]*([\d,\.]+)',
-        r'إجمالي\s*السعر[:\s]*([\d,\.]+)',
-        r'المجموع[:\s]*([\d,\.]+)',
-        r'إجمالي\s*الفاتورة[:\s]*([\d,\.]+)',
-        r'الإجمالي\s*الكلي[:\s]*([\d,\.]+)',
+      final totalAmount = _extractAmountFromLines(desc, [
+        'إجمالي المبلغ',
+        'الإجمالي',
+        'إجمالي السعر',
+        'المجموع',
+        'إجمالي الفاتورة',
+        'الإجمالي الكلي',
+        'total amount',
+        'total price',
+        'total',
       ]);
 
-      final numInstallments = _extractFlexibleValue(desc, [
-        r'عدد\s*الأقساط[:\s]*([\d]+)',
-        r'(\d+)\s*أقساط',
+      final numInstallments = _extractInstallmentCount(desc);
+
+      final perInstallment = _extractAmountFromLines(desc, [
+        'قيمة كل قسط',
+        'كل قسط',
+        'قيمة القسط الشهري',
+        'monthly installment value',
+        'monthly installment',
+        'monthly installments',
+        'monthly payments',
       ]);
 
-      final perInstallment = _extractFlexibleValue(desc, [
-        r'قيمة\s*كل\s*قسط[:\s]*([\d,\.]+)',
-        r'كل\s*قسط[:\s]*([\d,\.]+)',
-      ]);
-
-      // حساب إجمالي المبلغ إذا لم يكن متوفراً مباشرة (عدد الأقساط * قيمة القسط)
+      // If total is missing, derive it from down payment + installments.
       final calculatedTotal = (totalAmount == 0 && numInstallments > 0 && perInstallment > 0)
-          ? numInstallments * perInstallment
+          ? firstPayment + (numInstallments * perInstallment)
           : totalAmount;
 
       installmentFirstPayment += firstPayment * item.quantity;
       // إذا لم يتم تحديد calculatedTotal، استخدم 4 أضعاف الدفعة الأولى كافتراضي
       final defaultItemTotal = calculatedTotal > 0 ? calculatedTotal : firstPayment * 4;
       defaultPlanInstallmentTotal += defaultItemTotal * item.quantity;
-      customPlanInstallmentTotal += calculatedTotal * item.quantity;
+      customPlanInstallmentTotal += (calculatedTotal > 0 ? calculatedTotal : defaultItemTotal) * item.quantity;
     }
 
     // الحد الأدنى للدفعة الأولى للخطة المخصصة يشمل فقط المنتجات بالتقسيط

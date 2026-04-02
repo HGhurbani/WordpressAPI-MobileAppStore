@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/finance_profile.dart';
+import '../models/profile_document.dart';
 import '../providers/locale_provider.dart';
 import '../providers/user_provider.dart';
 import '../services/api_service.dart';
@@ -20,6 +23,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _phoneController;
   bool notificationsEnabled = true;
   bool _isLoading = false;
+  bool _isFinanceLoading = false;
+  bool _isFinanceSaving = false;
+  bool _isAttachmentBusy = false;
+  FinanceProfile _financeProfile = const FinanceProfile();
+  String? _residentInQatar;
+  String? _hasChecks;
+  String? _canGetChecks;
   final NotificationService _notificationService = NotificationService.instance;
   final ApiService _apiService = ApiService(); // استخدام مثيل واحد للـ ApiService
 
@@ -37,6 +47,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _emailController = TextEditingController(text: user?.email ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _passwordController = TextEditingController();
+    if (user != null) {
+      _loadFinanceProfile();
+    }
   }
 
   @override
@@ -48,73 +61,285 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  Future<void> _saveChanges(
-      UserProvider userProvider, bool isAr) async {
-    // التحقق من صحة البريد الإلكتروني ورقم الهاتف قبل الإرسال
+  Future<void> _loadFinanceProfile() async {
+    setState(() => _isFinanceLoading = true);
+    try {
+      final profile = await _apiService.getFinanceProfile();
+      if (!mounted) return;
+      setState(() {
+        _financeProfile = profile;
+        _residentInQatar = profile.residencyInQatar;
+        _hasChecks = profile.haveBankChecks;
+        _canGetChecks = profile.canGetBankChecks;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar(
+        Provider.of<LocaleProvider>(context, listen: false)
+                    .locale
+                    .languageCode ==
+                'ar'
+            ? 'تعذر تحميل بيانات التقسيط من البروفايل.'
+            : 'Failed to load installment profile data.',
+        Colors.red,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isFinanceLoading = false);
+      }
+    }
+  }
+
+  bool _validateFinanceAnswers(bool isAr) {
+    final hasAnyFinanceInput = _residentInQatar != null ||
+        _hasChecks != null ||
+        _canGetChecks != null ||
+        _financeProfile.idCardFront != null ||
+        _financeProfile.idCardBack != null ||
+        _financeProfile.bankStatements.isNotEmpty ||
+        _financeProfile.additionalAttachments.isNotEmpty;
+
+    if (!hasAnyFinanceInput) {
+      return true;
+    }
+
+    if (_residentInQatar == null) {
+      _showSnackBar(
+        isAr
+            ? 'يرجى تحديد ما إذا كنت تقيم في قطر.'
+            : 'Please specify whether you live in Qatar.',
+        Colors.red,
+      );
+      return false;
+    }
+
+    if (_residentInQatar == 'No') {
+      _showSnackBar(
+        isAr
+            ? 'لا يمكن الطلب إلا للمقيمين في قطر.'
+            : 'Orders are only allowed for residents in Qatar.',
+        Colors.red,
+      );
+      return false;
+    }
+
+    if (_hasChecks == null) {
+      _showSnackBar(
+        isAr
+            ? 'يرجى تحديد ما إذا كان لديك شيكات بنكية باسمك.'
+            : 'Please specify whether you have bank checks in your name.',
+        Colors.red,
+      );
+      return false;
+    }
+
+    if (_hasChecks == 'No') {
+      if (_canGetChecks == null) {
+        _showSnackBar(
+          isAr
+              ? 'يرجى تحديد ما إذا كان يمكنك استخراج شيكات بنكية باسمك.'
+              : 'Please specify whether you can issue bank checks in your name.',
+          Colors.red,
+        );
+        return false;
+      }
+      if (_canGetChecks == 'No') {
+        _showSnackBar(
+          isAr
+              ? 'لا يمكن الطلب إلا بشيكات شخصية باسمك أو إمكانية استخراجها.'
+              : 'Orders are only allowed with personal checks in your name or ability to issue them.',
+          Colors.red,
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /// حفظ بيانات الحساب فقط (الاسم، البريد، الجوال، كلمة المرور)
+  Future<void> _saveAccountInfo(UserProvider userProvider, bool isAr) async {
     if (!_isValidEmail(_emailController.text.trim())) {
       _showSnackBar(isAr ? 'الرجاء إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.', Colors.red);
       return;
     }
-    // يمكنك إضافة التحقق من رقم الهاتف هنا إذا كان لديك صيغة معينة
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    bool success = false;
     try {
-      success = await _apiService.updateUserInfo(
+      final success = await _apiService.updateUserInfo(
         name: name,
         email: email,
         phone: phone,
         password: password.isNotEmpty ? password : null,
       );
+
+      if (!mounted) return;
+      if (success) {
+        await userProvider.updateUser(
+          username: name,
+          email: email,
+          phone: phone,
+        );
+        _showSnackBar(isAr ? 'تم حفظ بيانات الحساب بنجاح!' : 'Account info saved successfully!', const Color(0xFF6FE0DA));
+      } else {
+        _showSnackBar(isAr ? 'فشل في حفظ البيانات. الرجاء المحاولة مرة أخرى.' : 'Failed to save. Please try again.', Colors.red);
+      }
     } catch (e) {
+      if (!mounted) return;
       if (e.toString().contains('expired_token')) {
-        if (!mounted) return;
         _showSnackBar(isAr ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى.' : 'Session expired, please log in again.', Colors.red);
         await userProvider.logout();
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/login');
-        setState(() {
-          _isLoading = false;
-        });
-        return;
       } else if (e.toString().contains('user_id_missing')) {
-        if (!mounted) return;
         _showSnackBar(
           isAr
-              ? 'لم يتم العثور على معرف المستخدم. يرجى تسجيل الخروج ثم تسجيل الدخول مرة أخرى لإعادة المزامنة.'
-              : 'User ID is missing. Please log out and log in again to refresh your data.',
+              ? 'لم يتم العثور على معرف المستخدم. يرجى تسجيل الخروج ثم تسجيل الدخول مرة أخرى.'
+              : 'User ID is missing. Please log out and log in again.',
           Colors.orange,
         );
-        setState(() {
-          _isLoading = false;
-        });
+      } else {
+        _showSnackBar(isAr ? 'فشل في حفظ البيانات.' : 'Failed to save.', Colors.red);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  /// حفظ ملف التقسيط فقط (الإقامة، الشيكات، إلخ)
+  Future<void> _saveInstallmentProfile(UserProvider userProvider, bool isAr) async {
+    if (!_validateFinanceAnswers(isAr)) return;
+
+    setState(() => _isFinanceSaving = true);
+
+    try {
+      final success = await _apiService.updateFinanceProfileAnswers(
+        residencyInQatar: _residentInQatar!,
+        haveBankChecks: _hasChecks!,
+        canGetBankChecks: _hasChecks == 'No' ? _canGetChecks : null,
+      );
+
+      if (!mounted) return;
+      if (success) {
+        await _loadFinanceProfile();
+        if (!mounted) return;
+        _showSnackBar(isAr ? 'تم حفظ ملف التقسيط بنجاح!' : 'Installment profile saved successfully!', const Color(0xFF6FE0DA));
+      } else {
+        _showSnackBar(isAr ? 'فشل في حفظ ملف التقسيط.' : 'Failed to save installment profile.', Colors.red);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      if (e.toString().contains('expired_token')) {
+        _showSnackBar(isAr ? 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى.' : 'Session expired, please log in again.', Colors.red);
+        await userProvider.logout();
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        _showSnackBar(isAr ? 'فشل في حفظ ملف التقسيط.' : 'Failed to save installment profile.', Colors.red);
+      }
+    } finally {
+      if (mounted) setState(() => _isFinanceSaving = false);
+    }
+  }
+
+  Future<void> _pickAndUploadDocuments({
+    required String category,
+    required bool isAr,
+    bool allowMultiple = false,
+  }) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: allowMultiple,
+        withData: true,
+        type: FileType.custom,
+        allowedExtensions: const ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf'],
+      );
+
+      if (result == null || result.files.isEmpty) {
         return;
       }
-    }
 
-    if (success) {
-      await userProvider.updateUser(
-        username: name,
-        email: email,
-        phone: phone,
-      );
+      setState(() => _isAttachmentBusy = true);
+
+      for (final file in result.files) {
+        await _apiService.uploadFinanceDocument(
+          category: category,
+          file: file,
+        );
+      }
+
+      await _loadFinanceProfile();
       if (!mounted) return;
-      _showSnackBar(isAr ? 'تم حفظ البيانات بنجاح!' : 'Changes saved successfully!', const Color(0xFF6FE0DA));
-    } else {
-      _showSnackBar(isAr ? 'فشل في حفظ البيانات. الرجاء المحاولة مرة أخرى.' : 'Failed to save changes. Please try again.', Colors.red);
+      _showSnackBar(
+        isAr ? 'تم رفع المرفقات بنجاح.' : 'Documents uploaded successfully.',
+        const Color(0xFF6FE0DA),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(
+        isAr ? 'تعذر رفع الملفات.' : 'Failed to upload files.',
+        Colors.red,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isAttachmentBusy = false);
+      }
+    }
+  }
+
+  Future<void> _deleteDocument({
+    required String category,
+    required String documentId,
+    required bool isAr,
+  }) async {
+    try {
+      setState(() => _isAttachmentBusy = true);
+      await _apiService.deleteFinanceDocument(
+        category: category,
+        documentId: documentId,
+      );
+      await _loadFinanceProfile();
+      if (!mounted) return;
+      _showSnackBar(
+        isAr ? 'تم حذف المرفق.' : 'Attachment deleted.',
+        const Color(0xFF6FE0DA),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      _showSnackBar(
+        isAr ? 'تعذر حذف المرفق.' : 'Failed to delete attachment.',
+        Colors.red,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isAttachmentBusy = false);
+      }
+    }
+  }
+
+  Future<void> _openDocument(String url, bool isAr) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      _showSnackBar(
+        isAr ? 'رابط المرفق غير صالح.' : 'Invalid attachment URL.',
+        Colors.red,
+      );
+      return;
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      _showSnackBar(
+        isAr ? 'تعذر فتح المرفق.' : 'Could not open attachment.',
+        Colors.red,
+      );
+    }
   }
 
   void _confirmLogout(UserProvider userProvider, bool isAr) {
@@ -166,6 +391,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
+  /// القسم المعروض: 'account' = بياناتي وملف التقسيط فقط، 'app' = اللغة والإشعارات فقط، null = الكل
+  static String? _getSectionArgument(BuildContext context) {
+    return ModalRoute.of(context)?.settings.arguments as String?;
+  }
+
   @override
   Widget build(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context);
@@ -173,27 +403,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final languageCode = localeProvider.locale.languageCode;
     final isAr = languageCode == 'ar';
     final isLoggedIn = userProvider.isLoggedIn;
+    final section = _getSectionArgument(context);
+
+    final showGeneral = section == null || section == 'app';
+    final showAccountAndFinance = section == null || (section == 'account' && isLoggedIn);
+
+    String appBarTitle;
+    if (section == 'account') {
+      appBarTitle = isAr ? 'بياناتي وملف التقسيط' : 'My data & installment profile';
+    } else if (section == 'app') {
+      appBarTitle = isAr ? 'إعدادات التطبيق' : 'App settings';
+    } else {
+      appBarTitle = isAr ? 'الإعدادات / Settings' : 'الإعدادات / Settings';
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FA),
       appBar: AppBar(
-        title: Text(isAr ? 'الإعدادات / Settings' : 'الإعدادات / Settings'), // عنوان أبسط
+        title: Text(appBarTitle),
         backgroundColor: const Color(0xFF1A2543),
         foregroundColor: Colors.white,
         centerTitle: true,
-        elevation: 4, // زيادة الظل لإبراز شريط التطبيق
-        shadowColor: Colors.black.withOpacity(0.3), // لون الظل
+        elevation: 4,
+        shadowColor: Colors.black.withOpacity(0.3),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20), // زيادة الهامش العام
-        physics: const BouncingScrollPhysics(), // تأثير الارتداد عند التمرير
+        padding: const EdgeInsets.all(20),
+        physics: const BouncingScrollPhysics(),
         children: [
-          _buildSectionHeader(isAr ? 'عام' : 'General', context),
-          const SizedBox(height: 15),
-
-          _sectionCard(
-            icon: Icons.language_rounded, // أيقونة أوضح
-            title: isAr ? 'اللغة / Language' : 'اللغة / Language',
+          if (showGeneral) ...[
+            _buildSectionHeader(isAr ? 'عام' : 'General', context),
+            const SizedBox(height: 12),
+            _sectionCard(
+              icon: Icons.language_rounded,
+              title: isAr ? 'اللغة / Language' : 'اللغة / Language',
             trailing: DropdownButtonHideUnderline( // إخفاء الخط السفلي
               child: DropdownButton<String>(
                 value: languageCode,
@@ -202,6 +445,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   if (value != null) {
                     localeProvider.setLocale(Locale(value));
                     Future.delayed(const Duration(milliseconds: 300), () {
+                      if (!mounted) return;
                       Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
                     });
                   }
@@ -223,25 +467,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 10),
 
-          _sectionCard(
-            icon: Icons.notifications_active_outlined,
-            title: isAr ? 'الإشعارات' : 'Notifications',
-            trailing: Switch.adaptive( // استخدام Switch.adaptive لتناسب المنصات المختلفة
-              value: notificationsEnabled,
-              onChanged: (val) async {
-                await _notificationService.setNotificationsEnabled(val);
-                setState(() => notificationsEnabled = val);
-              },
-              activeColor: const Color(0xFF6FE0DA),
-              inactiveTrackColor: Colors.grey.shade300, // لون خلفية أفتح عند الإيقاف
-              inactiveThumbColor: Colors.grey.shade600, // لون الزر عند الإيقاف
+            _sectionCard(
+              icon: Icons.notifications_active_outlined,
+              title: isAr ? 'الإشعارات' : 'Notifications',
+              trailing: Switch.adaptive(
+                value: notificationsEnabled,
+                onChanged: (val) async {
+                  await _notificationService.setNotificationsEnabled(val);
+                  setState(() => notificationsEnabled = val);
+                },
+                activeColor: const Color(0xFF6FE0DA),
+                inactiveTrackColor: Colors.grey.shade300,
+                inactiveThumbColor: Colors.grey.shade600,
+              ),
             ),
-          ),
+            const SizedBox(height: 32),
+          ],
 
-          const SizedBox(height: 40), // مسافة أكبر بين الأقسام
-          if (isLoggedIn) ...[
+          if (showAccountAndFinance) ...[
             _buildSectionHeader(isAr ? "معلومات الحساب" : "Account Info", context),
-            const SizedBox(height: 15),
+            const SizedBox(height: 12),
             _buildInputField(
               controller: _nameController,
               hint: isAr ? 'الاسم الكامل' : 'Full Name',
@@ -272,25 +517,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ElevatedButton.icon(
               icon: _isLoading
                   ? const SizedBox(
-                width: 24, // حجم أكبر للمؤشر
+                width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
                   color: Colors.white,
-                  strokeWidth: 2.5, // سمك أكبر للمؤشر
+                  strokeWidth: 2.5,
                 ),
               )
-                  : const Icon(Icons.save_alt_rounded, color: Colors.white, size: 24), // أيقونة أوضح
+                  : const Icon(Icons.save_alt_rounded, color: Colors.white, size: 24),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1A2543),
-                padding: const EdgeInsets.symmetric(vertical: 18), // حشوة أكبر للزر
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // حواف دائرية أكثر للزر
-                elevation: 0, // ظل أكبر للزر
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
               ),
               label: Text(
-                isAr ? 'حفظ التعديلات' : 'Save Changes',
-                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600), // خط أكبر وأكثر سمكاً
+                isAr ? 'حفظ بيانات الحساب' : 'Save account info',
+                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
               ),
-              onPressed: _isLoading ? null : () => _saveChanges(userProvider, isAr),
+              onPressed: _isLoading ? null : () => _saveAccountInfo(userProvider, isAr),
+            ),
+            const SizedBox(height: 32),
+            _buildSectionHeader(
+              isAr ? 'ملف التقسيط' : 'Installment Profile',
+              context,
+            ),
+            const SizedBox(height: 15),
+            _buildFinanceSection(isAr),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: _isFinanceSaving
+                  ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+                  : const Icon(Icons.save_rounded, color: Colors.white, size: 24),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A2543),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
+              ),
+              label: Text(
+                isAr ? 'حفظ ملف التقسيط' : 'Save installment profile',
+                style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
+              ),
+              onPressed: _isFinanceSaving ? null : () => _saveInstallmentProfile(userProvider, isAr),
             ),
             const SizedBox(height: 40),
             ListTile(
@@ -311,6 +587,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 40),
           ],
 
+          const SizedBox(height: 24),
+          Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
+          const SizedBox(height: 24),
           _buildSectionHeader(isAr ? 'الدعم والمساعدة' : 'Support & Help', context),
           const SizedBox(height: 15),
           _sectionCard(
@@ -410,6 +689,258 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: Color(0xFF6FE0DA), width: 3), // حدود أسمك عند التركيز
         ),
+      ),
+    );
+  }
+
+  Widget _buildFinanceSection(bool isAr) {
+    if (_isFinanceLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildQuestionSelector(
+              label: isAr ? 'هل تقيم في قطر؟' : 'Do you live in Qatar?',
+              value: _residentInQatar,
+              onChanged: (value) {
+                setState(() {
+                  _residentInQatar = value;
+                  if (value != 'Yes') {
+                    _hasChecks = null;
+                    _canGetChecks = null;
+                  }
+                });
+              },
+              isAr: isAr,
+            ),
+            const SizedBox(height: 12),
+            _buildQuestionSelector(
+              label: isAr
+                  ? 'هل لديك شيكات بنكية باسمك؟'
+                  : 'Do you have bank checks in your name?',
+              value: _hasChecks,
+              onChanged: _residentInQatar == 'Yes'
+                  ? (value) {
+                      setState(() {
+                        _hasChecks = value;
+                        if (value != 'No') {
+                          _canGetChecks = null;
+                        }
+                      });
+                    }
+                  : null,
+              isAr: isAr,
+            ),
+            if (_hasChecks == 'No') ...[
+              const SizedBox(height: 12),
+              _buildQuestionSelector(
+                label: isAr
+                    ? 'هل يمكنك استخراج شيكات بنكية باسمك؟'
+                    : 'Can you issue bank checks in your name?',
+                value: _canGetChecks,
+                onChanged: (value) => setState(() => _canGetChecks = value),
+                isAr: isAr,
+              ),
+            ],
+            const SizedBox(height: 20),
+            _buildAttachmentGroup(
+              title: isAr
+                  ? 'صورة البطاقة الشخصية (الوجه الأمامي)'
+                  : 'ID Card (Front)',
+              documents: _financeProfile.idCardFront == null
+                  ? const []
+                  : [_financeProfile.idCardFront!],
+              uploadLabel: isAr ? 'رفع / استبدال' : 'Upload / Replace',
+              onUpload: () => _pickAndUploadDocuments(
+                category: 'id_card_front',
+                isAr: isAr,
+              ),
+              onDelete: (doc) => _deleteDocument(
+                category: 'id_card_front',
+                documentId: doc.id,
+                isAr: isAr,
+              ),
+              isAr: isAr,
+            ),
+            const SizedBox(height: 16),
+            _buildAttachmentGroup(
+              title: isAr
+                  ? 'صورة البطاقة الشخصية (الوجه الخلفي)'
+                  : 'ID Card (Back)',
+              documents: _financeProfile.idCardBack == null
+                  ? const []
+                  : [_financeProfile.idCardBack!],
+              uploadLabel: isAr ? 'رفع / استبدال' : 'Upload / Replace',
+              onUpload: () => _pickAndUploadDocuments(
+                category: 'id_card_back',
+                isAr: isAr,
+              ),
+              onDelete: (doc) => _deleteDocument(
+                category: 'id_card_back',
+                documentId: doc.id,
+                isAr: isAr,
+              ),
+              isAr: isAr,
+            ),
+            const SizedBox(height: 16),
+            _buildAttachmentGroup(
+              title: isAr
+                  ? 'كشف حساب آخر 3 شهور'
+                  : 'Bank Statements (Last 3 Months)',
+              documents: _financeProfile.bankStatements,
+              uploadLabel: isAr ? 'إضافة ملفات' : 'Add Files',
+              onUpload: () => _pickAndUploadDocuments(
+                category: 'bank_statements',
+                isAr: isAr,
+                allowMultiple: true,
+              ),
+              onDelete: (doc) => _deleteDocument(
+                category: 'bank_statements',
+                documentId: doc.id,
+                isAr: isAr,
+              ),
+              isAr: isAr,
+            ),
+            const SizedBox(height: 16),
+            _buildAttachmentGroup(
+              title: isAr ? 'مرفقات إضافية' : 'Additional Attachments',
+              documents: _financeProfile.additionalAttachments,
+              uploadLabel: isAr ? 'إضافة ملفات' : 'Add Files',
+              onUpload: () => _pickAndUploadDocuments(
+                category: 'additional_attachments',
+                isAr: isAr,
+                allowMultiple: true,
+              ),
+              onDelete: (doc) => _deleteDocument(
+                category: 'additional_attachments',
+                documentId: doc.id,
+                isAr: isAr,
+              ),
+              isAr: isAr,
+            ),
+            if (_isAttachmentBusy) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    isAr ? 'جاري تحديث المرفقات...' : 'Updating attachments...',
+                    style: const TextStyle(color: Color(0xFF1A2543)),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionSelector({
+    required String label,
+    required String? value,
+    required ValueChanged<String?>? onChanged,
+    required bool isAr,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      items: [
+        DropdownMenuItem(
+          value: 'Yes',
+          child: Text(isAr ? 'نعم' : 'Yes'),
+        ),
+        DropdownMenuItem(
+          value: 'No',
+          child: Text(isAr ? 'لا' : 'No'),
+        ),
+      ],
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildAttachmentGroup({
+    required String title,
+    required List<ProfileDocument> documents,
+    required String uploadLabel,
+    required VoidCallback onUpload,
+    required ValueChanged<ProfileDocument> onDelete,
+    required bool isAr,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A2543),
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _isAttachmentBusy ? null : onUpload,
+                icon: const Icon(Icons.upload_file_rounded),
+                label: Text(uploadLabel),
+              ),
+            ],
+          ),
+          if (documents.isEmpty)
+            Text(
+              isAr ? 'لا توجد ملفات مرفوعة.' : 'No uploaded files.',
+              style: TextStyle(color: Colors.grey.shade600),
+            )
+          else
+            ...documents.map(
+              (doc) => ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.attach_file_rounded),
+                title: Text(
+                  doc.name.isEmpty ? doc.url : doc.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => _openDocument(doc.url, isAr),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                  onPressed: _isAttachmentBusy ? null : () => onDelete(doc),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
