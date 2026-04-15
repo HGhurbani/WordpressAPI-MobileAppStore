@@ -41,6 +41,11 @@ flutter run \
 When using CI, ensure the job exports these flags for any `flutter run`,
 `flutter test`, or `flutter build` invocation so HTTP requests are authorized.
 
+**Codemagic:** add encrypted environment variables `WOO_CONSUMER_KEY` and
+`WOO_CONSUMER_SECRET`, then use them in the build step (see root `codemagic.yaml`
+for example workflows). If the IPA is built without these `--dart-define` flags,
+the release app has no WooCommerce credentials and the store will stay empty.
+
 ### Release builds
 
 Release builds **must** provide the WooCommerce credentials with `--dart-define`

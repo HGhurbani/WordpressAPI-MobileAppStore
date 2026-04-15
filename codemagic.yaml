@@ -1,0 +1,78 @@
+# Codemagic: pass WooCommerce credentials into release builds.
+# Without WOO_CONSUMER_KEY / WOO_CONSUMER_SECRET, the app sends unauthenticated
+# requests and WordPress/WooCommerce returns 401 — no products, no login.
+#
+# 1. In Codemagic: Environment variables → add (encrypt):
+#    WOO_CONSUMER_KEY
+#    WOO_CONSUMER_SECRET
+# 2. Merge this workflow with your signing / App Store Connect settings, or
+#    copy only the `flutter build` lines into your existing workflow scripts.
+
+workflows:
+  flutter-ios-with-woo:
+    name: Flutter iOS (WooCommerce dart-define)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.creditphone.qatar.creditphoneqa
+      groups:
+        # Add a group that contains WOO_CONSUMER_KEY and WOO_CONSUMER_SECRET,
+        # or define those vars directly under environment -> vars.
+        - woo_credentials
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          flutter pub get
+      - name: Install CocoaPods
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR/ios"
+          pod install
+      - name: Build iOS (inject WooCommerce keys)
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          if [ -z "$WOO_CONSUMER_KEY" ] || [ -z "$WOO_CONSUMER_SECRET" ]; then
+            echo "ERROR: Set WOO_CONSUMER_KEY and WOO_CONSUMER_SECRET in Codemagic (encrypted)."
+            exit 1
+          fi
+          flutter build ipa --release \
+            --dart-define=WOO_CONSUMER_KEY="$WOO_CONSUMER_KEY" \
+            --dart-define=WOO_CONSUMER_SECRET="$WOO_CONSUMER_SECRET"
+    artifacts:
+      - build/ios/ipa/*.ipa
+
+  flutter-android-with-woo:
+    name: Flutter Android (WooCommerce dart-define)
+    instance_type: linux_x2
+    max_build_duration: 120
+    environment:
+      flutter: stable
+      groups:
+        - woo_credentials
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          flutter pub get
+      - name: Build Android App Bundle
+        script: |
+          set -e
+          cd "$CM_BUILD_DIR"
+          if [ -z "$WOO_CONSUMER_KEY" ] || [ -z "$WOO_CONSUMER_SECRET" ]; then
+            echo "ERROR: Set WOO_CONSUMER_KEY and WOO_CONSUMER_SECRET in Codemagic (encrypted)."
+            exit 1
+          fi
+          flutter build appbundle --release \
+            --dart-define=WOO_CONSUMER_KEY="$WOO_CONSUMER_KEY" \
+            --dart-define=WOO_CONSUMER_SECRET="$WOO_CONSUMER_SECRET"
+    artifacts:
+      - build/**/outputs/**/*.aab
