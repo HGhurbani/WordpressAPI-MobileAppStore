@@ -1,0 +1,56 @@
+workflows:
+  ios-creditphone-release:
+    name: Credit Phone Qatar iOS Release
+
+    environment:
+      flutter: stable
+      xcode: latest
+      groups:
+        - appstore_credentials
+        - ios_config
+        - woo_secrets
+
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: $BUNDLE_ID
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+
+    scripts:
+      - name: Show Flutter version
+        script: |
+          flutter --version
+
+      - name: Get packages
+        script: |
+          flutter pub get
+
+      - name: Verify WooCommerce env vars exist
+        script: |
+          if [ -z "$WOO_CONSUMER_KEY" ]; then echo "WOO_CONSUMER_KEY is missing"; exit 1; fi
+          if [ -z "$WOO_CONSUMER_SECRET" ]; then echo "WOO_CONSUMER_SECRET is missing"; exit 1; fi
+          echo "WooCommerce secrets detected"
+
+      - name: Build iOS IPA with dart-defines
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --dart-define=WOO_CONSUMER_KEY=$WOO_CONSUMER_KEY \
+            --dart-define=WOO_CONSUMER_SECRET=$WOO_CONSUMER_SECRET
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
