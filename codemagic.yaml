@@ -11,19 +11,13 @@ workflows:
       groups:
         - ios_config
         - woo_secrets
-
       ios_signing:
         distribution_type: app_store
         bundle_identifier: $BUNDLE_ID
 
     scripts:
-      - name: Show Flutter version
-        script: |
-          flutter --version
-
       - name: Get packages
-        script: |
-          flutter pub get
+        script: flutter pub get
 
       - name: Verify WooCommerce env vars exist
         script: |
