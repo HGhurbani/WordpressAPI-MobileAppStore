@@ -2,25 +2,19 @@ workflows:
   ios-creditphone-release:
     name: Credit Phone Qatar iOS Release
 
+    integrations:
+      app_store_connect: CreditPhone_
+
     environment:
       flutter: stable
       xcode: latest
       groups:
-        - appstore_credentials
         - ios_config
         - woo_secrets
 
       ios_signing:
         distribution_type: app_store
         bundle_identifier: $BUNDLE_ID
-
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
 
     scripts:
       - name: Show Flutter version
@@ -40,7 +34,6 @@ workflows:
       - name: Build iOS IPA with dart-defines
         script: |
           flutter build ipa --release \
-            --build-name=1.0.0 \
             --build-number=$PROJECT_BUILD_NUMBER \
             --dart-define=WOO_CONSUMER_KEY=$WOO_CONSUMER_KEY \
             --dart-define=WOO_CONSUMER_SECRET=$WOO_CONSUMER_SECRET
@@ -48,7 +41,6 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
 
     publishing:
       app_store_connect:
