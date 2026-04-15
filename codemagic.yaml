@@ -3,7 +3,7 @@ workflows:
     name: Credit Phone Qatar iOS Release
 
     integrations:
-      app_store_connect: YOUR_APP_STORE_CONNECT_KEY_NAME
+      app_store_connect: CreditPhone_
 
     environment:
       flutter: stable
