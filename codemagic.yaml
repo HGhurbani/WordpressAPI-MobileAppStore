@@ -3,21 +3,25 @@ workflows:
     name: Credit Phone Qatar iOS Release
 
     integrations:
-      app_store_connect: CreditPhone_
+      app_store_connect: YOUR_APP_STORE_CONNECT_KEY_NAME
 
     environment:
       flutter: stable
       xcode: latest
       groups:
-        - ios_config
         - woo_credentials
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: $BUNDLE_ID
+        bundle_identifier: com.creditphone.qatar.creditphoneqa
 
     scripts:
-      - name: Get packages
-        script: flutter pub get
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
 
       - name: Verify WooCommerce env vars exist
         script: |
@@ -25,12 +29,17 @@ workflows:
           if [ -z "$WOO_CONSUMER_SECRET" ]; then echo "WOO_CONSUMER_SECRET is missing"; exit 1; fi
           echo "WooCommerce secrets detected"
 
+      - name: Install CocoaPods
+        script: |
+          find . -name "Podfile" -execdir pod install \;
+
       - name: Build iOS IPA with dart-defines
         script: |
           flutter build ipa --release \
             --build-number=$PROJECT_BUILD_NUMBER \
             --dart-define=WOO_CONSUMER_KEY=$WOO_CONSUMER_KEY \
-            --dart-define=WOO_CONSUMER_SECRET=$WOO_CONSUMER_SECRET
+            --dart-define=WOO_CONSUMER_SECRET=$WOO_CONSUMER_SECRET \
+            --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
