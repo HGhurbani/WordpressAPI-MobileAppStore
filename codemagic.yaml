@@ -10,7 +10,7 @@ workflows:
       xcode: latest
       groups:
         - ios_config
-        - woo_secrets
+        - woo_credentials
       ios_signing:
         distribution_type: app_store
         bundle_identifier: $BUNDLE_ID
