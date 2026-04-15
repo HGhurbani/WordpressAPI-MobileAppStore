@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../firebase_options.dart';
@@ -118,7 +120,7 @@ class NotificationService {
 
     await _localNotifications.initialize(initializationSettings);
 
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    // Background handler is registered once in main.dart (must be top-level).
 
     if (_tokenRefreshSubscription == null) {
       _tokenRefreshSubscription =
@@ -184,13 +186,47 @@ class NotificationService {
     }
   }
 
+  /// On iOS, FCM needs the APNs device token before [FirebaseMessaging.getToken] works.
+  static const Duration _apnsPollDelay = Duration(milliseconds: 400);
+  static const int _apnsMaxAttempts = 25;
+
+  Future<void> _waitForApnsTokenIfNeeded() async {
+    if (kIsWeb) {
+      return;
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        break;
+      default:
+        return;
+    }
+    for (var i = 0; i < _apnsMaxAttempts; i++) {
+      final apns = await _fcm.getAPNSToken();
+      if (apns != null) {
+        return;
+      }
+      await Future<void>.delayed(_apnsPollDelay);
+    }
+  }
+
   Future<void> _requestPermission() async {
     final settings = await _fcm.requestPermission(alert: true, badge: true, sound: true);
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    final ok = settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+    if (!ok) {
+      return;
+    }
+    await _waitForApnsTokenIfNeeded();
+    try {
       final token = await _fcm.getToken();
       if (token != null) {
         await _handleTokenRefresh(token);
       }
+    } catch (e, st) {
+      // iOS may still race; [onTokenRefresh] will deliver the FCM token when ready.
+      print('NotificationService: getToken failed (will retry on refresh if needed): $e');
+      print('$st');
     }
   }
 
