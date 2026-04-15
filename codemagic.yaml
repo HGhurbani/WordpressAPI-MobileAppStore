@@ -5,8 +5,15 @@
 # 1. In Codemagic: Environment variables → add (encrypt):
 #    WOO_CONSUMER_KEY
 #    WOO_CONSUMER_SECRET
-# 2. Merge this workflow with your signing / App Store Connect settings, or
-#    copy only the `flutter build` lines into your existing workflow scripts.
+# 2. iOS code signing: configure in Codemagic (Team settings → iOS code signing),
+#    or Integrations → App Store Connect. Do NOT add `ios_signing` here unless
+#    that App ID + App Store provisioning profile already exist in your Apple
+#    account; otherwise Codemagic reports "No matching profiles found".
+# 3. Apple Developer: Identifiers must include com.creditphone.qatar.creditphoneqa
+#    and a matching App Store distribution provisioning profile.
+#
+# Merge this workflow with your signing / App Store Connect settings, or copy
+# only the `flutter build` lines into your existing workflow scripts.
 
 workflows:
   flutter-ios-with-woo:
@@ -17,9 +24,6 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.creditphone.qatar.creditphoneqa
       groups:
         # Add a group that contains WOO_CONSUMER_KEY and WOO_CONSUMER_SECRET,
         # or define those vars directly under environment -> vars.
