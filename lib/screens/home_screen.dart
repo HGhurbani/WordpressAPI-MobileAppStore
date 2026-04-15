@@ -1152,19 +1152,7 @@ class _HomeScreenState extends State<HomeScreen>
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             itemCount: categories.length,
             itemBuilder: (context, index) {
-              return TweenAnimationBuilder(
-                duration: Duration(milliseconds: 300 + (index * 100)),
-                tween: Tween<double>(begin: 0, end: 1),
-                builder: (context, double value, child) {
-                  return Transform.translate(
-                    offset: Offset(0, 20 * (1 - value)),
-                    child: Opacity(
-                      opacity: value,
-                      child: HomeCategoryCard(category: categories[index]),
-                    ),
-                  );
-                },
-              );
+              return HomeCategoryCard(category: categories[index]);
             },
           ),
         );
@@ -1215,22 +1203,10 @@ class _HomeScreenState extends State<HomeScreen>
         return Column(
           children: categories
               .map(
-                (category) => TweenAnimationBuilder(
-                  duration: const Duration(milliseconds: 600),
-                  tween: Tween<double>(begin: 0, end: 1),
-                  builder: (context, double value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 30 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: _buildCategorySection(
-                          category,
-                          moreLabel: moreLabel,
-                          currentLanguage: currentLanguage,
-                        ),
-                      ),
-                    );
-                  },
+                (category) => _buildCategorySection(
+                  category,
+                  moreLabel: moreLabel,
+                  currentLanguage: currentLanguage,
                 ),
               )
               .toList(),
@@ -1396,21 +1372,9 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
-                  return TweenAnimationBuilder(
-                    duration: Duration(milliseconds: 400 + (index * 100)),
-                    tween: Tween<double>(begin: 0, end: 1),
-                    builder: (context, double value, child) {
-                      return Transform.translate(
-                        offset: Offset(0, 20 * (1 - value)),
-                        child: Opacity(
-                          opacity: value,
-                          child: SizedBox(
-                            width: 160,
-                            child: ProductCard(product: products[index]),
-                          ),
-                        ),
-                      );
-                    },
+                  return SizedBox(
+                    width: 160,
+                    child: ProductCard(product: products[index]),
                   );
                 },
               ),
@@ -1610,19 +1574,7 @@ class _HomeScreenState extends State<HomeScreen>
               height: 290,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: TweenAnimationBuilder(
-                  duration: const Duration(milliseconds: 350),
-                  tween: Tween<double>(begin: 0, end: 1),
-                  builder: (context, double value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 15 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: ProductCard(product: product),
-                      ),
-                    );
-                  },
-                ),
+                child: ProductCard(product: product),
               ),
             );
           }
@@ -1639,21 +1591,7 @@ class _HomeScreenState extends State<HomeScreen>
                     }
                     final productIndex = index ~/ 2;
                     return Expanded(
-                      child: TweenAnimationBuilder(
-                        duration: Duration(
-                            milliseconds: 300 + (productIndex * 50)),
-                        tween: Tween<double>(begin: 0, end: 1),
-                        builder: (context, double value, child) {
-                          return Transform.translate(
-                            offset: Offset(0, 15 * (1 - value)),
-                            child: Opacity(
-                              opacity: value,
-                              child:
-                                  ProductCard(product: products[productIndex]),
-                            ),
-                          );
-                        },
-                      ),
+                      child: ProductCard(product: products[productIndex]),
                     );
                   }),
                 ),
@@ -1668,21 +1606,9 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: products.length,
               itemBuilder: (context, index) {
-                return TweenAnimationBuilder(
-                  duration: Duration(milliseconds: 300 + (index * 50)),
-                  tween: Tween<double>(begin: 0, end: 1),
-                  builder: (context, double value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 15 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: SizedBox(
-                          width: 160,
-                          child: ProductCard(product: products[index]),
-                        ),
-                      ),
-                    );
-                  },
+                return SizedBox(
+                  width: 160,
+                  child: ProductCard(product: products[index]),
                 );
               },
             ),

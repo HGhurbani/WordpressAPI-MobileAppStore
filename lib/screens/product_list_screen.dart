@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
@@ -41,6 +43,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   final apiService = ApiService();
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   List<Product> _allProducts = [];
   List<Product> _filteredProducts = [];
@@ -50,8 +53,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   bool _isAutoLoadingForFilter = false;
+  int _activeRequestId = 0;
 
   String _language = "ar";
+  String _currentQuery = "";
   _PaymentFilter _paymentFilter = _PaymentFilter.all;
 
   @override
@@ -59,9 +64,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.initState();
     final locale = Provider.of<LocaleProvider>(context, listen: false).locale;
     _language = locale.languageCode;
+    _paymentFilter = _initialPaymentFilter();
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
       _searchController.text = widget.initialQuery!;
     }
+    _currentQuery = _searchController.text.trim();
 
     _fetchProducts();
 
@@ -74,71 +81,98 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Future<void> _fetchProducts() async {
+    final requestId = ++_activeRequestId;
+
     setState(() {
       _isLoading = true;
       _page = 1;
       _hasMore = true;
       _allProducts = [];
       _filteredProducts = [];
+      _isLoadingMore = false;
+      _isAutoLoadingForFilter = false;
     });
 
-    // Default behavior: show ALL (cash + installment) and allow user filtering.
-    // If a screen explicitly opened "installment results" or "cash results", we
-    // keep that as an initial filter preference without hiding other items forever.
-    _paymentFilter = _initialPaymentFilter();
-
-    final products = await apiService.getProducts(
-      categoryId: widget.categoryId,
-      language: _language,
-      perPage: _perPage,
-      page: _page,
-    );
-
-    final sorted = _applySorting(products);
-    setState(() {
-      _allProducts = sorted;
-      _filteredProducts = _applySearch(
-        _searchController.text,
-        baseList: _applyPaymentFilter(sorted),
+    try {
+      final products = await apiService.getProducts(
+        categoryId: widget.categoryId,
+        language: _language,
+        perPage: _perPage,
+        page: _page,
+        searchQuery: _currentQuery,
       );
-      _hasMore = products.length == _perPage;
-      _isLoading = false;
-    });
 
-    await _ensureResultsForFilterIfNeeded();
+      if (!mounted || requestId != _activeRequestId) {
+        if (mounted && _isLoadingMore) {
+          setState(() => _isLoadingMore = false);
+        }
+        return;
+      }
+
+      final sorted = _applySorting(products);
+      setState(() {
+        _allProducts = sorted;
+        _filteredProducts = _applyPaymentFilter(sorted);
+        _hasMore = products.length == _perPage;
+        _isLoading = false;
+      });
+
+      await _ensureResultsForFilterIfNeeded();
+    } catch (_) {
+      if (!mounted || requestId != _activeRequestId) return;
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+        _hasMore = false;
+      });
+    }
   }
 
   Future<void> _fetchMoreProducts() async {
     if (_isLoadingMore) return;
     if (!mounted) return;
+    final requestId = _activeRequestId;
     setState(() => _isLoadingMore = true);
     _page++;
-    final more = await apiService.getProducts(
-      categoryId: widget.categoryId,
-      language: _language,
-      perPage: _perPage,
-      page: _page,
-    );
 
-    if (more.isNotEmpty) {
-      final sorted = _applySorting(more);
+    try {
+      final more = await apiService.getProducts(
+        categoryId: widget.categoryId,
+        language: _language,
+        perPage: _perPage,
+        page: _page,
+        searchQuery: _currentQuery,
+      );
 
-      if (mounted) {
-        setState(() {
-          _allProducts.addAll(sorted);
-          _applySorting(_allProducts);
-          _filteredProducts = _applySearch(
-            _searchController.text,
-            baseList: _applyPaymentFilter(_allProducts),
-          );
-          _hasMore = more.length == _perPage;
-        });
+      if (!mounted || requestId != _activeRequestId) {
+        if (mounted) {
+          setState(() => _isLoadingMore = false);
+        }
+        return;
       }
-    } else {
+
+      if (more.isNotEmpty) {
+        final sorted = _applySorting(more);
+
+        if (mounted) {
+          setState(() {
+            _allProducts.addAll(sorted);
+            _applySorting(_allProducts);
+            _filteredProducts = _applyPaymentFilter(_allProducts);
+            _hasMore = more.length == _perPage;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() => _hasMore = false);
+        }
+      }
+    } catch (_) {
       if (mounted) {
         setState(() => _hasMore = false);
       }
     }
+
     if (mounted) {
       setState(() => _isLoadingMore = false);
     }
@@ -179,18 +213,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  List<Product> _applySearch(String query, {List<Product>? baseList}) {
-    final source = baseList ?? _allProducts;
-    if (query.isEmpty) return List<Product>.from(source);
-    return source.where((p) => p.name.toLowerCase().contains(query.toLowerCase())).toList();
-  }
-
-  void _filterProducts(String query) {
-    setState(() {
-      _filteredProducts = _applySearch(
-        query,
-        baseList: _applyPaymentFilter(_allProducts),
-      );
+  void _onSearchChanged(String query) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      final normalizedQuery = query.trim();
+      if (!mounted || normalizedQuery == _currentQuery) return;
+      _currentQuery = normalizedQuery;
+      _fetchProducts();
     });
   }
 
@@ -198,10 +227,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (_paymentFilter == filter) return;
     setState(() {
       _paymentFilter = filter;
-      _filteredProducts = _applySearch(
-        _searchController.text,
-        baseList: _applyPaymentFilter(_allProducts),
-      );
+      _filteredProducts = _applyPaymentFilter(_allProducts);
     });
 
     _ensureResultsForFilterIfNeeded();
@@ -216,34 +242,25 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (_isLoading || _isLoadingMore) return;
     if (!_hasMore) return;
 
-    final query = _searchController.text;
+    final query = _currentQuery;
     // For normal browsing (no search query), try to fill the grid with enough items.
     // For search results, avoid too many extra requests: stop once we have at least one match.
     final desiredCount = query.trim().isEmpty ? 8 : 1;
 
-    final current = _applySearch(
-      _searchController.text,
-      baseList: _applyPaymentFilter(_allProducts),
-    );
+    final current = _applyPaymentFilter(_allProducts);
     if (current.length >= desiredCount) return;
 
     setState(() => _isAutoLoadingForFilter = true);
     var safety = 0;
     while (mounted && safety < 6) {
-      final nowFiltered = _applySearch(
-        _searchController.text,
-        baseList: _applyPaymentFilter(_allProducts),
-      );
+      final nowFiltered = _applyPaymentFilter(_allProducts);
       if (nowFiltered.length >= desiredCount || !_hasMore) break;
       await _fetchMoreProducts();
       safety++;
     }
     if (!mounted) return;
     setState(() {
-      _filteredProducts = _applySearch(
-        _searchController.text,
-        baseList: _applyPaymentFilter(_allProducts),
-      );
+      _filteredProducts = _applyPaymentFilter(_allProducts);
       _isAutoLoadingForFilter = false;
     });
   }
@@ -275,7 +292,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _searchController,
-              onChanged: _filterProducts,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: searchHint,
                 prefixIcon: const Icon(Icons.search),
@@ -352,6 +369,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();

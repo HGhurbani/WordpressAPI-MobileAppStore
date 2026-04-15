@@ -24,6 +24,10 @@ class CartProvider extends ChangeNotifier {
   }
 
   void addToCart(Product product, {InstallmentPlan? plan}) {
+    if (product.availabilityKey() == 'out') {
+      return;
+    }
+
     final index = _items.indexWhere((element) => element.product.id == product.id);
     if (index >= 0) {
       _items[index].quantity++;
@@ -64,6 +68,10 @@ class CartProvider extends ChangeNotifier {
   }
 
   void increaseQuantity(Product product) {
+    if (product.availabilityKey() == 'out') {
+      return;
+    }
+
     final index = _items.indexWhere((item) => item.product.id == product.id);
     if (index != -1) {
       _items[index].quantity += 1;

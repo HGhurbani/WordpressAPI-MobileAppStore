@@ -21,6 +21,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
     with AutomaticKeepAliveClientMixin {
   final ApiService _api = ApiService();
   late Future<List<Category>> _futureCategories;
+  final Map<int, Future<List<Product>>> _futureProductsByCategory = {};
   String? _currentLanguage;
 
   @override
@@ -42,6 +43,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
       setState(() {
         _currentLanguage = lang;
         _futureCategories = _api.getCategories(language: lang);
+        _futureProductsByCategory.clear();
       });
     }
   }
@@ -72,6 +74,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
             setState(() {
               _futureCategories = _api.getCategories(language: lang);
               _currentLanguage = lang;
+              _futureProductsByCategory.clear();
             });
             HapticFeedback.lightImpact();
           },
@@ -188,7 +191,27 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
     setState(() {
       _futureCategories = _api.getCategories(language: lang);
       _currentLanguage = lang;
+      _futureProductsByCategory.clear();
     });
+  }
+
+  Future<List<Product>> _getCategoryProducts(
+    Category category,
+    String language,
+  ) {
+    final bool isIphoneCategory =
+        category.name.toLowerCase().contains('iphone') ||
+        category.name.contains('آيفون') ||
+        category.name.contains('ايفون');
+
+    return _futureProductsByCategory.putIfAbsent(
+      category.id,
+      () => _api.getProducts(
+        categoryId: category.id,
+        language: language,
+        perPage: isIphoneCategory ? 100 : 10,
+      ),
+    );
   }
 
   Widget _buildErrorState({
@@ -372,19 +395,8 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
   Widget _buildSingleCategorySection(
       Category category, String language, bool isArabic) {
     final moreLabel = isArabic ? 'المزيد' : 'More';
-    // اعتبار تصنيف الآيفون بأي من صيغ الكتابة الشائعة
-    final bool isIphoneCategory =
-        category.name.toLowerCase().contains('iphone') ||
-        category.name.contains('آيفون') ||
-        category.name.contains('ايفون');
-
     return FutureBuilder<List<Product>>(
-      future: _api.getProducts(
-        categoryId: category.id,
-        language: language,
-        // في تصنيف الآيفون: اجلب كل المنتجات الممكنة (حتى 100)
-        perPage: isIphoneCategory ? 100 : 10,
-      ),
+      future: _getCategoryProducts(category, language),
       builder: (context, snapshot) {
         Widget buildHeader() {
           return Padding(
@@ -464,19 +476,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
               height: 290,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: TweenAnimationBuilder(
-                  duration: const Duration(milliseconds: 350),
-                  tween: Tween<double>(begin: 0, end: 1),
-                  builder: (context, double value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 15 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: ProductCard(product: products.first),
-                      ),
-                    );
-                  },
-                ),
+                child: ProductCard(product: products.first),
               ),
             );
           }
@@ -493,21 +493,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
                     }
                     final productIndex = index ~/ 2;
                     return Expanded(
-                      child: TweenAnimationBuilder(
-                        duration: Duration(
-                            milliseconds: 300 + (productIndex * 50)),
-                        tween: Tween<double>(begin: 0, end: 1),
-                        builder: (context, double value, child) {
-                          return Transform.translate(
-                            offset: Offset(0, 15 * (1 - value)),
-                            child: Opacity(
-                              opacity: value,
-                              child:
-                                  ProductCard(product: products[productIndex]),
-                            ),
-                          );
-                        },
-                      ),
+                      child: ProductCard(product: products[productIndex]),
                     );
                   }),
                 ),
@@ -522,21 +508,9 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: products.length,
               itemBuilder: (context, index) {
-                return TweenAnimationBuilder(
-                  duration: Duration(milliseconds: 300 + (index * 50)),
-                  tween: Tween<double>(begin: 0, end: 1),
-                  builder: (context, double value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 15 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: SizedBox(
-                          width: 160,
-                          child: ProductCard(product: products[index]),
-                        ),
-                      ),
-                    );
-                  },
+                return SizedBox(
+                  width: 160,
+                  child: ProductCard(product: products[index]),
                 );
               },
             ),
@@ -554,6 +528,7 @@ class _InstallmentStoreScreenState extends State<InstallmentStoreScreen>
                 _buildErrorState(
                   isArabic: isArabic,
                   onRetry: () {
+                    _futureProductsByCategory.remove(category.id);
                     setState(() {});
                   },
                   message: isArabic

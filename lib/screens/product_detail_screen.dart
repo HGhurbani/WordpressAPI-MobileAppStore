@@ -253,6 +253,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           if (!snapshot.hasData) return const SizedBox.shrink();
           final product = snapshot.data!;
           final quantity = cartProvider.getQuantity(product);
+          final isOutOfStock = product.availabilityKey() == 'out';
 
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -281,13 +282,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   key: const ValueKey("addButton"),
-                  icon: const Icon(Icons.shopping_cart_outlined, color: Colors.white),
+                  icon: Icon(
+                    isOutOfStock
+                        ? Icons.remove_shopping_cart_outlined
+                        : Icons.shopping_cart_outlined,
+                    color: Colors.white,
+                  ),
                   label: Text(
-                    addToCartText,
+                    isOutOfStock
+                        ? (isArabic ? "نفد المخزون" : "Out of stock")
+                        : addToCartText,
                     style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A2543),
+                    backgroundColor: isOutOfStock
+                        ? Colors.grey.shade400
+                        : const Color(0xFF1A2543),
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -295,7 +305,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     elevation: 6,
                     shadowColor: Colors.black.withOpacity(0.2),
                   ),
-                  onPressed: () async {
+                  onPressed: isOutOfStock
+                      ? null
+                      : () async {
                     final player = AudioPlayer();
                     await player.play(AssetSource('sounds/click.mp3'));
                     cartProvider.addToCart(product);
@@ -347,9 +359,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.add_circle, color: Colors.white, size: 28),
-                      onPressed: () {
-                        cartProvider.addToCart(product);
-                      },
+                      onPressed: isOutOfStock
+                          ? null
+                          : () {
+                              cartProvider.addToCart(product);
+                            },
                     ),
                     const SizedBox(width: 20),
                     Expanded(

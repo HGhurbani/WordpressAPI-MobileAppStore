@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../providers/locale_provider.dart';
-import '../services/notification_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -141,7 +140,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     }
 
     await _loadLanguage();
-    await _initializeNotifications();
 
     setState(() => _isInitializing = false);
 
@@ -151,13 +149,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _scaleController.forward();
   }
 
-  Future<void> _initializeNotifications() async {
-    await NotificationService.instance.initialize();
-  }
-
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedLang = prefs.getString('app_lang');
+    final savedLang = prefs.getString('app_lang') ?? prefs.getString('language_code');
     if (savedLang != null) {
       setState(() => _language = savedLang);
       if (mounted) {
@@ -175,10 +169,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       Provider.of<LocaleProvider>(context, listen: false).setLocale(Locale(langCode));
     }
 
-    // Animate transition to intro pages
-    await _fadeController.reverse();
-    await Future.delayed(const Duration(milliseconds: 200));
-    _fadeController.forward();
+    // Avoid a full fade-to-empty (perceived as "lag") during language switch.
+    _fadeController
+      ..reset()
+      ..forward();
   }
 
   Future<void> _next() async {

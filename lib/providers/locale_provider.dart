@@ -12,7 +12,9 @@ class LocaleProvider extends ChangeNotifier {
 
   Future<void> _loadLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    String? lang = prefs.getString('language_code');
+    // Prefer the current key used by the splash language selector.
+    // Keep backward compatibility with older saved key.
+    String? lang = prefs.getString('app_lang') ?? prefs.getString('language_code');
     if (lang != null && lang.isNotEmpty) {
       _locale = Locale(lang);
       notifyListeners();
@@ -23,7 +25,7 @@ class LocaleProvider extends ChangeNotifier {
     if (!['ar', 'en'].contains(locale.languageCode)) return;
     _locale = Locale(locale.languageCode);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language_code', locale.languageCode);
+    await prefs.setString('app_lang', locale.languageCode);
     notifyListeners();
   }
 }

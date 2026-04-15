@@ -103,7 +103,10 @@ class ApiService {
     int page = 1,
     double? minPrice,
     double? maxPrice,
+    String? searchQuery,
   }) async {
+    final normalizedSearchQuery = searchQuery?.trim();
+
     final response = await http.get(
       _uri(
         '/products',
@@ -114,6 +117,9 @@ class ApiService {
           'category': categoryId,
           'min_price': minPrice,
           'max_price': maxPrice,
+          'search': normalizedSearchQuery == null || normalizedSearchQuery.isEmpty
+              ? null
+              : normalizedSearchQuery,
         },
       ),
       headers: _defaultHeaders(),

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -24,22 +26,56 @@ class AppCachedImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final u = (url ?? '').trim();
-    final content = u.isEmpty
-        ? _fallback()
-        : CachedNetworkImage(
-            imageUrl: u,
-            width: width,
-            height: height,
-            fit: fit,
-            fadeInDuration: const Duration(milliseconds: 120),
-            placeholderFadeInDuration: const Duration(milliseconds: 80),
-            placeholder: (context, _) => _placeholder(context),
-            errorWidget: (context, _, __) => errorWidget ?? _fallback(),
-          );
+    final content = LayoutBuilder(
+      builder: (context, constraints) {
+        final devicePixelRatio =
+            MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
+        final resolvedWidth =
+            width ?? _finiteDimension(constraints.maxWidth) ?? MediaQuery.sizeOf(context).width;
+        final resolvedHeight = height ?? _finiteDimension(constraints.maxHeight);
+        final cacheWidth = _cacheDimension(resolvedWidth, devicePixelRatio);
+        final cacheHeight = _cacheDimension(resolvedHeight, devicePixelRatio);
+
+        if (u.isEmpty) {
+          return _fallback();
+        }
+
+        return CachedNetworkImage(
+          imageUrl: u,
+          width: width,
+          height: height,
+          fit: fit,
+          fadeInDuration: const Duration(milliseconds: 80),
+          placeholderFadeInDuration: const Duration(milliseconds: 40),
+          memCacheWidth: cacheWidth,
+          memCacheHeight: cacheHeight,
+          maxWidthDiskCache: cacheWidth,
+          maxHeightDiskCache: cacheHeight,
+          placeholder: (context, _) => _placeholder(context),
+          errorWidget: (context, _, __) => errorWidget ?? _fallback(),
+        );
+      },
+    );
 
     final br = borderRadius;
     if (br == null) return content;
     return ClipRRect(borderRadius: br, child: content);
+  }
+
+  double? _finiteDimension(double value) {
+    if (!value.isFinite || value <= 0) {
+      return null;
+    }
+    return value;
+  }
+
+  int? _cacheDimension(double? logicalDimension, double devicePixelRatio) {
+    if (logicalDimension == null || logicalDimension <= 0) {
+      return null;
+    }
+
+    final scaled = (logicalDimension * devicePixelRatio).round();
+    return math.max(64, math.min(scaled, 2048));
   }
 
   Widget _placeholder(BuildContext context) {

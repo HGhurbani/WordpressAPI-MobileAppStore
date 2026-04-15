@@ -140,6 +140,8 @@ class ProductCard extends StatelessWidget {
   }
 
   Widget _buildProductDetails(BuildContext context, bool isArabic, String currencySymbol) {
+    final bool isOutOfStock = product.availabilityKey() == 'out';
+
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12), // Adjusted padding
@@ -184,7 +186,9 @@ class ProductCard extends StatelessWidget {
                     height: 40, // Fixed height for consistency
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A2543),
+                        backgroundColor: isOutOfStock
+                            ? Colors.grey.shade400
+                            : const Color(0xFF1A2543),
                         foregroundColor: Colors.white, // Text color
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8), // Fully rounded button
@@ -192,7 +196,9 @@ class ProductCard extends StatelessWidget {
                         elevation: 2, // Slight elevation for the button
                         padding: EdgeInsets.zero, // Remove default padding
                       ),
-                      onPressed: () async {
+                      onPressed: isOutOfStock
+                          ? null
+                          : () async {
                         final player = AudioPlayer();
                         await player.play(AssetSource('sounds/click.mp3'));
                         cartProvider.addToCart(product);
@@ -213,10 +219,17 @@ class ProductCard extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.add_shopping_cart, size: 18), // Icon for add to cart
+                          Icon(
+                            isOutOfStock
+                                ? Icons.remove_shopping_cart_outlined
+                                : Icons.add_shopping_cart,
+                            size: 18,
+                          ),
                           const SizedBox(width: 6),
                           Text(
-                            isArabic ? "أضف للسلة" : "Add to Cart",
+                            isOutOfStock
+                                ? (isArabic ? "نفد المخزون" : "Out of stock")
+                                : (isArabic ? "أضف للسلة" : "Add to Cart"),
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -251,7 +264,9 @@ class ProductCard extends StatelessWidget {
                         ),
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
-                          onPressed: () => cartProvider.addToCart(product),
+                          onPressed: isOutOfStock
+                              ? null
+                              : () => cartProvider.addToCart(product),
                           splashRadius: 20,
                         ),
                       ],
