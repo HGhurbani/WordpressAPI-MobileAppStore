@@ -27,12 +27,16 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     final dynamic stockQtyRaw = json['stock_quantity'];
+    final rawPrice = json["price"]?.toString();
+    final parsedPrice = double.tryParse(rawPrice ?? '');
+    final safePrice =
+        (parsedPrice == null || !parsedPrice.isFinite) ? 0.0 : parsedPrice;
     return Product(
       id: json["id"],
       name: json["name"],
       description: json["description"] ?? "",
       shortDescription: json["short_description"] ?? "",
-      price: double.tryParse(json["price"]?.toString() ?? "0") ?? 0.0,
+      price: safePrice,
       images: (json["images"] as List<dynamic>)
           .map((img) => img["src"].toString())
           .toList(),

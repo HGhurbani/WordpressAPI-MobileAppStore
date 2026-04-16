@@ -30,9 +30,10 @@ class AppCachedImage extends StatelessWidget {
       builder: (context, constraints) {
         final devicePixelRatio =
             MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
-        final resolvedWidth =
-            width ?? _finiteDimension(constraints.maxWidth) ?? MediaQuery.sizeOf(context).width;
-        final resolvedHeight = height ?? _finiteDimension(constraints.maxHeight);
+        final resolvedWidth = _finiteDimension(width ?? constraints.maxWidth) ??
+            MediaQuery.sizeOf(context).width;
+        final resolvedHeight =
+            _finiteDimension(height ?? constraints.maxHeight);
         final cacheWidth = _cacheDimension(resolvedWidth, devicePixelRatio);
         final cacheHeight = _cacheDimension(resolvedHeight, devicePixelRatio);
 
@@ -70,7 +71,7 @@ class AppCachedImage extends StatelessWidget {
   }
 
   int? _cacheDimension(double? logicalDimension, double devicePixelRatio) {
-    if (logicalDimension == null || logicalDimension <= 0) {
+    if (logicalDimension == null || !logicalDimension.isFinite || logicalDimension <= 0) {
       return null;
     }
 

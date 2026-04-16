@@ -11,21 +11,63 @@ import 'screens/register_screen.dart'; // تأكد من وجود هذا المل
 import 'screens/main_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/product_list_screen.dart';
-import 'screens/product_detail_screen.dart';
 import 'screens/orders_screen.dart';
 import 'screens/cart_screen.dart';
-import 'screens/checkout_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/privacy_policy_screen.dart';
 import 'screens/terms_screen.dart';
 
 class AppRoutes {
+  static const String splash = '/';
+  static const String main = '/main';
+  static const String login = '/login';
+
+  static const Set<String> _restorableRoutes = {
+    main,
+    '/home',
+    '/cart',
+    '/profile',
+    '/orders',
+    '/settings',
+    '/privacy',
+    '/terms',
+    '/notifications',
+    '/categories',
+    '/about',
+    '/faq',
+    '/installment-options',
+    '/installment-store',
+  };
+
+  static const Set<String> _authRequiredRoutes = {
+    '/orders',
+  };
+
+  static bool canRestore(String? routeName) {
+    return routeName != null && _restorableRoutes.contains(routeName);
+  }
+
+  static String resolveStartupRoute({
+    required String? lastRoute,
+    required bool isLoggedIn,
+  }) {
+    if (!canRestore(lastRoute)) {
+      return main;
+    }
+
+    if (_authRequiredRoutes.contains(lastRoute) && !isLoggedIn) {
+      return login;
+    }
+
+    return lastRoute!;
+  }
+
   static Map<String, WidgetBuilder> routes = {
-    '/': (context) => SplashScreen(),
-    '/login': (context) => LoginScreen(),
+    splash: (context) => SplashScreen(),
+    login: (context) => LoginScreen(),
     '/register': (context) => RegisterScreen(),
-    '/main': (context) => MainScreen(),
+    main: (context) => MainScreen(),
     '/home': (context) => HomeScreen(),
     '/product_list': (context) => ProductListScreen(),
     // لاحظ أن صفحة تفاصيل المنتج تحتاج إلى معلمة، فيُفضل تمريرها باستخدام Navigator مع arguments

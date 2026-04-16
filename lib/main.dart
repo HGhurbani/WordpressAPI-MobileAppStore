@@ -56,7 +56,7 @@ Future<void> _initializeWebApp() async {
         ChangeNotifierProvider<UserProvider>(create: (_) => UserProvider()),
         ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
       ],
-      child: MyApp(initialRoute: '/'), // استخدام route ثابت
+      child: const MyApp(), // استخدام route ثابت
     ),
   );
 }
@@ -72,9 +72,6 @@ Future<void> _initializeMobileApp() async {
   final userProvider = UserProvider();
   await userProvider.loadUserFromPrefs();
 
-  final prefs = await SharedPreferences.getInstance();
-  final lastRoute = prefs.getString('last_route') ?? '/';
-
   runApp(
     MultiProvider(
       providers: [
@@ -82,7 +79,7 @@ Future<void> _initializeMobileApp() async {
         ChangeNotifierProvider<UserProvider>.value(value: userProvider),
         ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
       ],
-      child: MyApp(initialRoute: lastRoute),
+      child: const MyApp(),
     ),
   );
 }
@@ -92,7 +89,7 @@ class RouteObserverService extends RouteObserver<PageRoute<dynamic>> {
   void _saveLastRoute(Route<dynamic>? route) {
     if (route is PageRoute) {
       final routeName = route.settings.name;
-      if (routeName != null) {
+      if (routeName != null && AppRoutes.canRestore(routeName)) {
         SharedPreferences.getInstance().then((prefs) {
           prefs.setString('last_route', routeName);
         });
@@ -176,9 +173,7 @@ class ErrorApp extends StatelessWidget {
 }
 
 class MyApp extends StatefulWidget {
-  final String initialRoute;
-
-  const MyApp({Key? key, required this.initialRoute}) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -196,11 +191,11 @@ class _MyAppState extends State<MyApp> {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-        final user = userProvider.user;
+        final email = userProvider.user?.email;
 
-        if (user != null && user.email != null) {
+        if (email != null && email.isNotEmpty) {
           await _notificationService.checkOrderStatusUpdates(
-            userEmail: user.email!,
+            userEmail: email,
             langCode: localeProvider.locale.languageCode,
           );
         }
@@ -209,11 +204,11 @@ class _MyAppState extends State<MyApp> {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         final userProvider = Provider.of<UserProvider>(context, listen: false);
         final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-        final user = userProvider.user;
+        final email = userProvider.user?.email;
 
-        if (user != null && user.email != null) {
+        if (email != null && email.isNotEmpty) {
           await _notificationService.checkOrderStatusUpdates(
-            userEmail: user.email!,
+            userEmail: email,
             langCode: localeProvider.locale.languageCode,
           );
         }
@@ -232,7 +227,7 @@ class _MyAppState extends State<MyApp> {
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           theme: AppTheme.lightTheme,
-          initialRoute: widget.initialRoute,
+          initialRoute: AppRoutes.splash,
           navigatorObservers: kIsWeb ? [] : [routeObserver], // تجاهل routeObserver للويب
           routes: AppRoutes.routes,
         );

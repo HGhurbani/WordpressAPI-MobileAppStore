@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
 import '../providers/locale_provider.dart';
+import '../routes.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -132,10 +134,12 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
     final prefs = await SharedPreferences.getInstance();
     final shouldSkip = prefs.getBool('skip_intro') ?? false;
+    final lastRoute = prefs.getString('last_route');
+    final hasRestorableRoute = AppRoutes.canRestore(lastRoute);
 
-    if (shouldSkip) {
-      await Future.delayed(const Duration(milliseconds: 1500));
-      Navigator.pushReplacementNamed(context, '/main');
+    if (shouldSkip || hasRestorableRoute) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      await _openStartupRoute();
       return;
     }
 
@@ -147,6 +151,29 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _fadeController.forward();
     _slideController.forward();
     _scaleController.forward();
+  }
+
+  Future<void> _openStartupRoute() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final targetRoute = AppRoutes.resolveStartupRoute(
+      lastRoute: prefs.getString('last_route'),
+      isLoggedIn: userProvider.isLoggedIn,
+    );
+
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+
+    if (targetRoute == AppRoutes.login) {
+      navigator.pushNamedAndRemoveUntil(targetRoute, (route) => false);
+      return;
+    }
+
+    navigator.pushNamedAndRemoveUntil(AppRoutes.main, (route) => false);
+
+    if (targetRoute != AppRoutes.main) {
+      navigator.pushNamed(targetRoute);
+    }
   }
 
   Future<void> _loadLanguage() async {
@@ -189,7 +216,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
       // Smooth transition to main screen
       await _fadeController.reverse();
-      Navigator.pushReplacementNamed(context, '/main');
+      await _openStartupRoute();
     }
   }
 

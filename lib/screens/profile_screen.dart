@@ -21,6 +21,11 @@ class ProfileScreen extends StatelessWidget {
 
     final appBarTitle = isArabic ? "حسابي" : "My Account"; // عنوان أبسط
 
+    // في MainScreen الـ BottomNavigationBar يطفو فوق المحتوى (extendBody=true)،
+    // لذلك نضيف حشوة سفلية لضمان إمكانية التمرير حتى آخر عنصر بدون أن يغطيه الشريط.
+    final bottomSafe = MediaQuery.of(context).padding.bottom;
+    final bottomNavOverlapPadding = bottomSafe + 120;
+
     return Scaffold(
       backgroundColor: _backgroundColor, // خلفية موحدة للشاشة
       appBar: AppBar(
@@ -32,13 +37,13 @@ class ProfileScreen extends StatelessWidget {
         shadowColor: Colors.black.withOpacity(0.3), // لون الظل
       ),
       body: userProvider.isLoggedIn
-          ? _buildProfileContent(context, localeProvider, userProvider)
-          : _buildNotLoggedInSection(context, isArabic),
+          ? _buildProfileContent(context, localeProvider, userProvider, bottomNavOverlapPadding)
+          : _buildNotLoggedInSection(context, isArabic, bottomNavOverlapPadding),
     );
   }
 
   // --- قسم عدم تسجيل الدخول (Not Logged In Section) ---
-  Widget _buildNotLoggedInSection(BuildContext context, bool isArabic) {
+  Widget _buildNotLoggedInSection(BuildContext context, bool isArabic, double bottomNavOverlapPadding) {
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -51,7 +56,7 @@ class ProfileScreen extends StatelessWidget {
       //   ),
       // ),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32), // حشوة أكبر
+        padding: EdgeInsets.fromLTRB(24, 32, 24, 32 + bottomNavOverlapPadding), // حشوة أكبر + مساحة للشريط السفلي
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center, // توسيط المحتوى أفقياً
           children: [
@@ -195,7 +200,12 @@ class ProfileScreen extends StatelessWidget {
   }
 
   // --- قسم عند تسجيل الدخول (Logged In Section) ---
-  Widget _buildProfileContent(BuildContext context, LocaleProvider localeProvider, UserProvider userProvider) {
+  Widget _buildProfileContent(
+    BuildContext context,
+    LocaleProvider localeProvider,
+    UserProvider userProvider,
+    double bottomNavOverlapPadding,
+  ) {
     final language = localeProvider.locale.languageCode;
     final isArabic = language == 'ar';
 
@@ -235,7 +245,7 @@ class ProfileScreen extends StatelessWidget {
     final displayName = _deriveDisplayName();
 
     return ListView(
-      padding: const EdgeInsets.all(20), // حشوة أكبر
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + bottomNavOverlapPadding), // حشوة أكبر + مساحة للشريط السفلي
       physics: const BouncingScrollPhysics(), // تأثير ارتداد عند التمرير
       children: [
         // بطاقة معلومات المستخدم (Header Card)

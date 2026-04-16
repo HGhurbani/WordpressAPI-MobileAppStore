@@ -71,6 +71,7 @@ class UserProvider extends ChangeNotifier {
     await prefs.remove('user_phone');
     await prefs.remove('saved_username');
     await prefs.remove('remember_me');
+    await prefs.remove('last_route');
 
     _user = null;
     notifyListeners();
