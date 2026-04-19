@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:641037176066:android:5dcacad11210461fc2061b",
+        "android_client_info": {
+          "package_name": "com.azkar.doaa.alghamdi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSl6tHzf6x-WQAC4ecuuquoUGtwFfvUn8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:641037176066:android:ceb3c46ae5f4436cc2061b",
         "android_client_info": {
           "package_name": "com.creditphone.qatar.creditphoneqa"
