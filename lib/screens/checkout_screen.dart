@@ -510,6 +510,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 (v) => setState(() => _canObtainChecks = v),
                 isAr,
               ),
+            const SizedBox(height: 12),
+            _buildInstallmentDisclosure(isAr),
             const SizedBox(height: 8),
             _buildCheckoutAttachmentGroup(
               title: isAr
@@ -758,6 +760,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  Widget _buildInstallmentDisclosure(bool isAr) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFBFDBFE)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.info_outline_rounded, color: Color(0xFF1D4ED8)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isAr
+                  ? 'تُطلب مستندات الهوية وكشف الحساب فقط لمراجعة أهلية طلب التقسيط، والتحقق من البيانات، والمساعدة في منع الاحتيال. إرسال الطلب أو رفع المستندات لا يعني الموافقة النهائية تلقائياً.'
+                  : 'ID and bank-statement documents are requested only to review installment eligibility, verify submitted information, and help prevent fraud. Submitting the request or uploading documents does not mean automatic final approval.',
+              style: const TextStyle(
+                color: Color(0xFF1E3A8A),
+                height: 1.45,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _validateInstallmentRequirements(bool isAr) {
     if (_residentInQatar == null) {
       _showCheckoutError(
@@ -943,7 +980,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final message = _extractErrorMessage(error);
       throw CheckoutAuthException(
         isAr
-            ? 'تعذّر تسجيل الدخول. يرجى التأكد من صحة البريد الإلكتروني/اسم المستخدم وكلمة المرور أو تسجيل الدخول يدويًا. التفاصيل: $message'
+            ? 'تعذّر تسجيل الدخول. يرجى التأكد من صحة البريد الإلكتروني/اسم المستخدم وكلمة المرور أو تسجيل الدخول يدوياً. التفاصيل: $message'
             : 'We could not sign you in. Please verify your email/username and password or sign in manually. Details: $message',
       );
     }

@@ -101,7 +101,7 @@ class ProfileScreen extends StatelessWidget {
             // وصف توضيحي
             Text(
               isArabic
-                  ? "سجّل الدخول أو أنشئ حسابًا جديدًا للوصول إلى بياناتك الشخصية، متابعة طلباتك، والاستفادة من جميع الميزات الحصرية."
+                  ? "سجّل الدخول أو أنشئ حساباً جديداً للوصول إلى بياناتك الشخصية، متابعة طلباتك، والاستفادة من جميع الميزات الحصرية."
                   : "Login or create a new account to access your personal data, track your orders, and enjoy all exclusive features.",
               style: TextStyle(
                 fontSize: 16,
@@ -461,7 +461,7 @@ class ProfileScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(isArabic ? 'تأكيد حذف الحساب' : 'Confirm Account Deletion', style: const TextStyle(color: _primaryColor)),
         content: Text(
-          isArabic ? 'هل أنت متأكد تمامًا من رغبتك في حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء وسيتم فقدان جميع بياناتك.' : 'Are you absolutely sure you want to delete your account? This action cannot be undone, and all your data will be lost.',
+          isArabic ? 'هل أنت متأكد تماماً من رغبتك في حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء وسيتم فقدان جميع بياناتك.' : 'Are you absolutely sure you want to delete your account? This action cannot be undone, and all your data will be lost.',
           style: const TextStyle(color: Colors.black87),
         ),
         actions: [
@@ -501,7 +501,7 @@ class ProfileScreen extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                isArabic ? 'تعذر حذف الحساب. حاول مرة أخرى لاحقًا.' : 'Unable to delete the account. Please try again later.',
+                isArabic ? 'تعذر حذف الحساب. حاول مرة أخرى لاحقاً.' : 'Unable to delete the account. Please try again later.',
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: Colors.red.shade600,

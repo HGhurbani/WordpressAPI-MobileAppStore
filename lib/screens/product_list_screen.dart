@@ -182,7 +182,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     if (widget.sortBy == 'price_asc') {
       products.sort((a, b) => a.price.compareTo(b.price));
     }
-    // يمكنك لاحقًا إضافة دعم لمزيد من الفرز مثل: 'price_desc' أو 'name_asc'
+    // يمكنك لاحقاً إضافة دعم لمزيد من الفرز مثل: 'price_desc' أو 'name_asc'
     return products;
   }
 

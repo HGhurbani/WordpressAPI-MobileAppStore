@@ -352,7 +352,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildHistoryInfoBanner(String langCode) {
     final text = langCode == 'ar'
-        ? 'تم الاحتفاظ بآخر 50 إشعارًا فقط. تم حذف الإشعارات الأقدم لتوفير المساحة.'
+        ? 'تم الاحتفاظ بآخر 50 إشعاراً فقط. تم حذف الإشعارات الأقدم لتوفير المساحة.'
         : 'Only the latest 50 notifications are kept. Older alerts have been removed to save space.';
 
     return Container(

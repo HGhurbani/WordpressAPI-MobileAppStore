@@ -26,7 +26,7 @@ class FaqScreen extends StatelessWidget {
       },
       {
         "q": "هل توجد باقات أو عروض خاصة؟", // Changed text slightly for better clarity
-        "a": isAr ? "بالتأكيد! نوفر باقات وعروضاً خاصة مصممة خصيصًا للموظفين في القطاعين الحكومي والخاص، بالإضافة إلى الجهات الاعتبارية." : "Absolutely! We offer special packages and deals designed specifically for employees in both governmental and private sectors, as well as for corporate entities."
+        "a": isAr ? "بالتأكيد! نوفر باقات وعروضاً خاصة مصممة خصيصاً للموظفين في القطاعين الحكومي والخاص، بالإضافة إلى الجهات الاعتبارية." : "Absolutely! We offer special packages and deals designed specifically for employees in both governmental and private sectors, as well as for corporate entities."
       },
       {
         "q": isAr ? "ما هي المستندات المطلوبة للتقسيط؟" : "What documents are required for installment plans?",

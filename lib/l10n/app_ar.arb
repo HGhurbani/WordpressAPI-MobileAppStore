@@ -31,8 +31,8 @@
   "authEnterConfirmPassword": "يرجى تأكيد كلمة المرور",
   "authPasswordsDoNotMatch": "كلمة المرور غير متطابقة",
 
-  "authErrorGenericLogin": "حدث خطأ غير متوقع أثناء تسجيل الدخول. حاول مرة أخرى لاحقًا.",
-  "authErrorGenericRegister": "تعذّر إنشاء الحساب. يرجى المحاولة مرة أخرى لاحقًا.",
+  "authErrorGenericLogin": "حدث خطأ غير متوقع أثناء تسجيل الدخول. حاول مرة أخرى لاحقاً.",
+  "authErrorGenericRegister": "تعذّر إنشاء الحساب. يرجى المحاولة مرة أخرى لاحقاً.",
   "authErrorNoInternet": "تعذر الاتصال. يرجى التحقق من اتصال الإنترنت.",
   "authErrorTimeout": "انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.",
   "authErrorInvalidCredentials": "بيانات تسجيل الدخول غير صحيحة. يرجى التحقق من اسم المستخدم أو كلمة المرور.",

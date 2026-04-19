@@ -209,7 +209,7 @@ class _InstallmentOptionsScreenState extends State<InstallmentOptionsScreen> {
     // عدد الأقساط بناءً على الخطة المختارة
     int numberOfInstallments = selectedPlan == 'default' ? 4 : customMonths;
 
-    // الدفعة الأولى الفعلية: إما التي أدخلها المستخدم (إذا كانت صالحة) أو المحسوبة تلقائيًا
+    // الدفعة الأولى الفعلية: إما التي أدخلها المستخدم (إذا كانت صالحة) أو المحسوبة تلقائياً
     double actualFirstPayment = (selectedPlan == 'custom' && userDefinedFirstPayment > 0)
         ? userDefinedFirstPayment.clamp(minFirstPaymentRequired, double.infinity) // ضمان ألا تقل عن الحد الأدنى
         : installmentFirstPayment;

@@ -68,7 +68,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
       textDirection: isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         extendBody: true, // لجعل الـ BottomNavigationBar يطفو فوق المحتوى
-        extendBodyBehindAppBar: true, // لجعل الـ AppBar شفافًا أو عائمًا فوق المحتوى
+        extendBodyBehindAppBar: true, // لجعل الـ AppBar شفافاً أو عائماً فوق المحتوى
         drawer: _buildEnhancedDrawer(context, languageCode),
         onDrawerChanged: (isOpened) {
           if (isOpened) {
@@ -829,7 +829,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                                   ],
                                 ),
                                 child: Text(
-                                  count > 99 ? '99+' : '$count', // عرض 99+ إذا كان العدد كبيرًا
+                                  count > 99 ? '99+' : '$count', // عرض 99+ إذا كان العدد كبيراً
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,

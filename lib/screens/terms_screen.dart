@@ -59,8 +59,8 @@ class TermsScreen extends StatelessWidget {
                 ),
                 _buildBulletPoint(
                   isAr
-                      ? 'يُستخدم هذا التطبيق حصريًا لعرض المنتجات المتاحة وتسهيل عملية تقديم طلبات الشراء عبر تطبيق واتساب.'
-                      : 'This application is exclusively used for displaying available products and facilitating the placement of purchase orders via the WhatsApp application.',
+                      ? 'يُستخدم هذا التطبيق لعرض المنتجات المتاحة وتقديم طلبات الشراء أو طلبات التقسيط المبدئية، وقد يتم استكمال بعض خطوات التواصل أو التأكيد خارج التطبيق مثل واتساب أو التواصل المباشر مع فريق Credit Phone.'
+                      : 'This application is used to display available products and submit preliminary purchase or installment requests. Some communication or confirmation steps may be completed outside the app, such as via WhatsApp or direct contact with the Credit Phone team.',
                   textDirection,
                 ),
                 _buildBulletPoint(
@@ -78,8 +78,33 @@ class TermsScreen extends StatelessWidget {
                 ),
                 _buildBulletPoint(
                   isAr
-                      ? 'يعتبر الطلب المقدم عبر التطبيق طلبًا مبدئيًا وغير ملزم حتى يتم تأكيده بشكل رسمي من قبل فريق Credit Phone عبر محادثة واتساب.'
+                      ? 'يعتبر الطلب المقدم عبر التطبيق طلباً مبدئياً وغير ملزم حتى يتم تأكيده بشكل رسمي من قبل فريق Credit Phone عبر محادثة واتساب.'
                       : 'An order placed through the application is considered an initial, non-binding request until it is officially confirmed by the Credit Phone team via a WhatsApp conversation.',
+                  textDirection,
+                ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'بالنسبة لطلبات التقسيط، فإن رفع المستندات أو إدخال البيانات لا يعني الموافقة النهائية تلقائياً، إذ تبقى كل الطلبات خاضعة للمراجعة والتحقق وتقييم الأهلية وفق المتطلبات المعمول بها.'
+                      : 'For installment requests, uploading documents or submitting information does not mean automatic final approval. Every request remains subject to review, verification, and eligibility assessment under the applicable requirements.',
+                  textDirection,
+                ),
+                const SizedBox(height: 20),
+
+                _buildSectionHeader(
+                  context,
+                  isAr ? 'مستندات التقسيط والأهلية' : 'Installment Documents & Eligibility',
+                  Icons.fact_check_outlined,
+                ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'قد نطلب صورة هوية سارية، وكشف حساب بنكي، أو مستندات داعمة أخرى عندما تكون لازمة لتقييم طلب التقسيط والمساعدة في التحقق من الهوية ومنع الاحتيال.'
+                      : 'We may request a valid ID copy, bank statements, or other supporting documents when needed to assess an installment request, help verify identity, and prevent fraud.',
+                  textDirection,
+                ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'يتحمل المستخدم مسؤولية تقديم بيانات ومستندات صحيحة وحديثة، ويجوز رفض أو إلغاء الطلب إذا كانت البيانات غير مكتملة أو غير دقيقة أو غير قابلة للتحقق.'
+                      : 'Users are responsible for providing accurate and up-to-date information and documents. A request may be refused or cancelled if the information is incomplete, inaccurate, or cannot be verified.',
                   textDirection,
                 ),
                 const SizedBox(height: 20),
@@ -104,8 +129,14 @@ class TermsScreen extends StatelessWidget {
                 ),
                 _buildBulletPoint(
                   isAr
-                      ? 'يجب أن يكون المستخدم مقيمًا داخل دولة قطر للاستفادة من خدمات التطبيق وتقديم الطلبات.'
+                      ? 'يجب أن يكون المستخدم مقيماً داخل دولة قطر للاستفادة من خدمات التطبيق وتقديم الطلبات.'
                       : 'Users must be residents within the State of Qatar to utilize the application\'s services and place orders.',
+                  textDirection,
+                ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'قد تنطبق متطلبات أهلية إضافية على بعض طلبات التقسيط بحسب نوع المنتج أو سياسة Credit Phone السارية وقت التقديم.'
+                      : 'Additional eligibility requirements may apply to certain installment requests depending on the product type or Credit Phone\'s policy at the time of submission.',
                   textDirection,
                 ),
                 const SizedBox(height: 20),

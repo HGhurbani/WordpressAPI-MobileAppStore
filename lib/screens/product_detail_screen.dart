@@ -69,7 +69,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           if (snapshot.hasError || !snapshot.hasData) {
             return Center(
               child: Text(
-                isArabic ? "فشل تحميل المنتج. يرجى المحاولة لاحقًا." : "Failed to load product. Please try again later.",
+                isArabic ? "فشل تحميل المنتج. يرجى المحاولة لاحقاً." : "Failed to load product. Please try again later.",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[600]),
               ),

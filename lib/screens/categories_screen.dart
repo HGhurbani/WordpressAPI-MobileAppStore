@@ -42,7 +42,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         title: Text(
           isArabic ? 'الأصناف' : 'Categories',
           style: const TextStyle(
-            fontSize: 22, // حجم أكبر قليلاً لعنوان أكثر بروزًا
+            fontSize: 22, // حجم أكبر قليلاً لعنوان أكثر بروزاً
             fontWeight: FontWeight.bold, // خط سميك للعنوان
             color: Colors.white, // لون أبيض ليتناسق مع خلفية الـ AppBar
           ),
@@ -68,9 +68,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
-                // لون مؤشر التحميل بلون الهوية ليتناسق بصريًا
+                // لون مؤشر التحميل بلون الهوية ليتناسق بصرياً
                 valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1A2543)),
-                strokeWidth: 4, // سمك أكبر قليلاً للمؤشر ليكون أكثر وضوحًا
+                strokeWidth: 4, // سمك أكبر قليلاً للمؤشر ليكون أكثر وضوحاً
               ),
             );
           }
@@ -116,7 +116,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1A2543), // لون الزر بلون الهوية
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12), // حواف دائرية أكثر وضوحًا
+                          borderRadius: BorderRadius.circular(12), // حواف دائرية أكثر وضوحاً
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
                         elevation: 5, // إضافة ظل خفيف للزر

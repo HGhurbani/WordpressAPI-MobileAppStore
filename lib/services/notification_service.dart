@@ -372,7 +372,7 @@ class NotificationService {
     _unreadCountController.add(0);
   }
 
-  // 🆕 تتبع تغييرات الطلبات يدويًا
+  // 🆕 تتبع تغييرات الطلبات يدوياً
   Future<void> checkOrderStatusUpdates({
     required String userEmail,
     required String langCode,

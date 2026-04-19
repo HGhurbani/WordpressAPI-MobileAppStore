@@ -47,7 +47,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
                 _buildParagraph(
                   isAr
-                      ? 'نحن في Credit Phone نحترم خصوصيتك ونلتزم التزامًا كاملاً بحماية بياناتك الشخصية. توضح هذه السياسة كيف نقوم بجمع معلوماتك واستخدامها وحمايتها.'
+                      ? 'نحن في Credit Phone نحترم خصوصيتك ونلتزم التزاماً كاملاً بحماية بياناتك الشخصية. توضح هذه السياسة كيف نقوم بجمع معلوماتك واستخدامها وحمايتها.'
                       : 'At Credit Phone, we highly respect your privacy and are fully committed to protecting your personal data. This policy explains how we collect, use, and safeguard your information.',
                   textDirection,
                 ),
@@ -60,8 +60,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
                 _buildBulletPoint(
                   isAr
-                      ? 'لا نقوم بجمع أي بيانات دفع إلكترونية. تتم جميع الطلبات والمعاملات المالية بشكل حصري عبر تطبيق واتساب.'
-                      : 'We do not collect any electronic payment data. All orders and financial transactions are handled exclusively via WhatsApp.',
+                      ? 'لا نقوم بجمع بيانات بطاقات الدفع أو معالجة مدفوعات إلكترونية داخل التطبيق. قد يتم استكمال بعض خطوات التواصل أو التأكيد خارج التطبيق، مثل واتساب أو التواصل المباشر مع فريقنا.'
+                      : 'We do not collect card-payment data or process electronic payments inside the app. Some communication or order-confirmation steps may be completed outside the app, such as via WhatsApp or direct contact with our team.',
                   textDirection,
                 ),
                 _buildBulletPoint(
@@ -76,6 +76,18 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       : 'Your phone number may be used to contact you regarding your order status or to provide necessary support.',
                   textDirection,
                 ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'عند التقديم على طلب تقسيط، قد نطلب مستندات تحقق مثل صورة الهوية وكشف الحساب البنكي لتقييم الأهلية، والمساعدة في منع الاحتيال، ومراجعة الطلب مبدئياً قبل التأكيد النهائي.'
+                      : 'When you apply for an installment request, we may ask for verification documents such as an ID copy and bank statements to assess eligibility, help prevent fraud, and perform a preliminary review before final confirmation.',
+                  textDirection,
+                ),
+                _buildBulletPoint(
+                  isAr
+                      ? 'إذا فعّلت الإشعارات، فقد نقوم بمعالجة رمز الإشعارات الخاص بجهازك وإرسال إشعارات تتعلق بحالة الطلب أو التحديثات الخدمية المهمة.'
+                      : 'If you enable notifications, we may process your device notification token and send notifications related to order status or other important service updates.',
+                  textDirection,
+                ),
                 const SizedBox(height: 20),
 
                 _buildSectionHeader(
@@ -85,8 +97,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
                 _buildParagraph(
                   isAr
-                      ? 'نحن نؤكد أننا لا نشارك بياناتك الشخصية مع أي طرف ثالث تحت أي ظرف من الظروف. خصوصيتك هي أولويتنا القصوى.'
-                      : 'We assure you that we do not share your personal data with any third parties under any circumstances. Your privacy is our utmost priority.',
+                      ? 'نحن لا نبيع بياناتك الشخصية. وقد تتم مشاركة الحد الأدنى من البيانات فقط مع مزودي الخدمات والتقنيات اللازمة لتشغيل التطبيق، أو مع الجهات المعنية بمعالجة الطلب أو الالتزام بالمتطلبات القانونية والتنظيمية عند الحاجة.'
+                      : 'We do not sell your personal data. We may share the minimum necessary data only with service and technology providers required to operate the app, or with parties involved in processing your request or meeting legal and regulatory obligations when needed.',
                   textDirection,
                 ),
                 const SizedBox(height: 20),
@@ -98,8 +110,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
                 _buildParagraph(
                   isAr
-                      ? 'نحتفظ ببياناتك طوال مدة استخدامك للتطبيق وحسابك. يمكنك في أي وقت حذف حسابك وطلب حذف بياناتك الشخصية بالكامل.'
-                      : 'We retain your data for as long as you use the app and your account. You may at any time delete your account and request full deletion of your personal data.',
+                      ? 'نحتفظ ببيانات الحساب طوال مدة استخدامك للتطبيق ما لم تتطلب القوانين أو متطلبات معالجة الطلب الاحتفاظ ببعض السجلات لمدة أطول. كما قد نحتفظ بمستندات التقسيط طالما كانت لازمة لمراجعة الطلب أو للالتزامات النظامية ثم تُحذف أو تُؤرشف وفق إجراءاتنا الداخلية.'
+                      : 'We retain account data for as long as you use the app unless laws or request-processing requirements require certain records to be kept longer. Installment documents may also be retained for as long as needed to review the request or satisfy regulatory obligations, and then deleted or archived in accordance with our internal procedures.',
                   textDirection,
                 ),
                 _buildBulletPoint(
@@ -123,14 +135,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 ),
                 _buildParagraph(
                   isAr
-                      ? 'يختص هذا التطبيق بتقديم خدمة طلب المنتجات بالتقسيط حصريًا داخل دولة قطر، ولا يتضمن أي آليات للمدفوعات الإلكترونية المباشرة ضمن التطبيق.'
-                      : 'This application is exclusively designed for facilitating installment-based product orders within Qatar. It does not include any direct in-app electronic payment mechanisms.',
+                      ? 'يختص هذا التطبيق بتقديم خدمة طلب المنتجات بالتقسيط داخل دولة قطر. إرسال الطلب أو رفع المستندات لا يعني الموافقة النهائية تلقائياً، إذ يخضع كل طلب للمراجعة والتحقق وفق الشروط المعمول بها لدى Credit Phone.'
+                      : 'This application is designed to facilitate installment-based product requests within Qatar. Submitting a request or uploading documents does not mean automatic final approval; each request remains subject to review and verification under Credit Phone\'s applicable requirements.',
                   textDirection,
                 ),
                 const SizedBox(height: 30),
                 Center(
                   child: Text(
-                    isAr ? 'شكرًا لثقتك بنا.' : 'Thank you for trusting us.',
+                    isAr ? 'شكراً لثقتك بنا.' : 'Thank you for trusting us.',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,

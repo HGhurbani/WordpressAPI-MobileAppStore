@@ -84,11 +84,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get authErrorGenericLogin =>
-      'حدث خطأ غير متوقع أثناء تسجيل الدخول. حاول مرة أخرى لاحقًا.';
+      'حدث خطأ غير متوقع أثناء تسجيل الدخول. حاول مرة أخرى لاحقاً.';
 
   @override
   String get authErrorGenericRegister =>
-      'تعذّر إنشاء الحساب. يرجى المحاولة مرة أخرى لاحقًا.';
+      'تعذّر إنشاء الحساب. يرجى المحاولة مرة أخرى لاحقاً.';
 
   @override
   String get authErrorNoInternet =>

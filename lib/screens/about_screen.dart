@@ -95,7 +95,7 @@ class AboutUsScreen extends StatelessWidget {
                   Icons.track_changes_outlined,
                 ),
                 _sectionText(isAr
-                    ? "تتمثل مهمتنا في تمكين عملائنا من امتلاك أحدث الأجهزة التقنية اليوم والدفع لاحقًا من خلال خطط سداد مريحة ومناسبة لميزانيتهم، مما يساهم في تحسين جودة حياتهم الرقمية."
+                    ? "تتمثل مهمتنا في تمكين عملائنا من امتلاك أحدث الأجهزة التقنية اليوم والدفع لاحقاً من خلال خطط سداد مريحة ومناسبة لميزانيتهم، مما يساهم في تحسين جودة حياتهم الرقمية."
                     : "Our mission is to empower our customers to own the latest tech devices today and pay later through convenient and budget-friendly installment plans, thereby enhancing their digital quality of life.",
                     textDirection),
                 const SizedBox(height: 20),
@@ -110,7 +110,7 @@ class AboutUsScreen extends StatelessWidget {
                     isAr ? "موافقة سريعة على الطلب خلال دقائق معدودة" : "Swift approval for your request within minutes",
                     isAr ? "تسليم فوري للمنتجات أو في نفس اليوم لضمان سرعة الخدمة" : "Instant or same-day delivery for prompt service",
                     isAr ? "دعم شامل ومتكامل قبل وبعد البيع لضمان رضا العملاء" : "Comprehensive pre- and post-sale support to ensure customer satisfaction",
-                    isAr ? "خطط تقسيط مرنة تتناسب تمامًا مع راتبك والتزاماتك المالية" : "Flexible installment plans perfectly aligned with your salary and financial obligations",
+                    isAr ? "خطط تقسيط مرنة تتناسب تماماً مع راتبك والتزاماتك المالية" : "Flexible installment plans perfectly aligned with your salary and financial obligations",
                   ],
                   textDirection,
                 ),
